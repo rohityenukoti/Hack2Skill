@@ -221,14 +221,14 @@ export default function VoiceAssistant({ centers, activeCenterId }) {
 
           {aiResult && (
             <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{ display: 'flex', gap: '1rem', padding: '1rem', background: 'hsla(222, 47%, 14%, 0.4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', padding: '1rem', background: 'var(--surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
                 <div style={{ flexGrow: 1 }}>
                   <span className="badge normal" style={{ marginBottom: '0.5rem' }}>Original Transcript</span>
                   <p style={{ fontWeight: 600 }}>"{aiResult.detectedText}"</p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', padding: '1rem', background: 'hsla(187, 92%, 45%, 0.05)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--primary-glow)', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', padding: '1rem', background: 'var(--primary-glow)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)', marginBottom: '1.5rem' }}>
                 <div>
                   <span className="badge success" style={{ marginBottom: '0.5rem' }}>AI English Translation</span>
                   <p style={{ color: 'var(--primary)', fontWeight: 500 }}>{aiResult.translatedText}</p>
@@ -239,13 +239,13 @@ export default function VoiceAssistant({ centers, activeCenterId }) {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flexGrow: 1, marginBottom: '1.5rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--surface-hover)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>OPERATION TYPE</span>
                     <p style={{ fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)' }}>
                       {aiResult.operation === "update" ? "Stock Update" : aiResult.operation === "staff" ? "Staff Log" : aiResult.operation === "bed" ? "Bed Status" : "Unknown"}
                     </p>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--surface-hover)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>EXTRACTION CONFIDENCE</span>
                     <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--status-success)' }}>
                       {Math.round(aiResult.confidence * 100)}%
@@ -254,7 +254,7 @@ export default function VoiceAssistant({ centers, activeCenterId }) {
                 </div>
 
                 {aiResult.operation === "update" && (
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--surface-hover)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ITEM NAME</span>
@@ -269,7 +269,7 @@ export default function VoiceAssistant({ centers, activeCenterId }) {
                 )}
 
                 {aiResult.operation === "staff" && (
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--surface-hover)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ROLE LOGGED</span>
@@ -284,7 +284,7 @@ export default function VoiceAssistant({ centers, activeCenterId }) {
                 )}
 
                 {aiResult.operation === "bed" && (
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--surface-hover)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>METRIC</span>

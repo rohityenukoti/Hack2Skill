@@ -167,18 +167,64 @@ export default function App() {
   const roleInfo = getRoleInfo();
 
   return (
-    <div className="app-container">
-      {/* Sidebar Navigation */}
-      <aside className="sidebar">
-        <div className="logo-container">
-          <span className="logo-icon">🏥</span>
-          <div>
-            <h1 className="logo-text">Chikitsalay Setu</h1>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginTop: '-2px', fontWeight: 600 }}>
-              चिकित्सालय सेतु
-            </span>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {/* 1. Accessibility Top Bar */}
+      <div className="gov-top-bar">
+        <div className="gov-top-bar-inner">
+          <div className="gov-top-bar-left">
+            <span>राष्ट्रीय स्वास्थ्य मिशन | National Health Mission</span>
+          </div>
+          <div className="gov-top-bar-right">
+            <a href="#main-content" className="gov-top-bar-link">Skip to Main Content</a>
+            <div className="gov-accessibility-controls">
+              <button className="gov-accessibility-btn" onClick={() => document.documentElement.style.fontSize = '14px'}>A-</button>
+              <button className="gov-accessibility-btn" onClick={() => document.documentElement.style.fontSize = '16px'}>A</button>
+              <button className="gov-accessibility-btn" onClick={() => document.documentElement.style.fontSize = '18px'}>A+</button>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* 2. Official Logo Banner Header */}
+      <header style={{ background: '#ffffff', borderBottom: '1px solid var(--border-color)', padding: '1rem 2rem' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '2.5rem' }}>🏛️</span>
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>भारत सरकार | GOVERNMENT OF INDIA</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2 }}>
+                चिकित्सालय सेतु | Chikitsalay Setu
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                Ministry of Health & Family Welfare • AI-Powered Health Center Supply Network
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ textAlign: 'right' }}>
+              <div>Digital India Portal</div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 500 }}>राष्ट्रीय सूचना विज्ञान केंद्र (NIC)</div>
+            </div>
+            <span style={{ fontSize: '1.8rem' }}>🇮🇳</span>
+          </div>
+        </div>
+      </header>
+
+      {/* 3. Tricolor Ribbon */}
+      <div className="tricolor-ribbon">
+        <div className="tricolor-orange"></div>
+        <div className="tricolor-white"></div>
+        <div className="tricolor-green"></div>
+      </div>
+
+      {/* 4. App container splits into Sidebar and Main Content */}
+      <div className="app-container" style={{ flexGrow: 1, display: 'flex' }}>
+        {/* Sidebar Navigation */}
+        <aside className="sidebar">
+          <div className="logo-container" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+            <span style={{ fontSize: '1.25rem' }}>🏥</span>
+            <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem', marginLeft: '6px' }}>Control Panel</span>
+          </div>
 
         {/* Logged-in User Badge */}
         <div style={{
@@ -434,6 +480,7 @@ export default function App() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

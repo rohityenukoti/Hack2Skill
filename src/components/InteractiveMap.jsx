@@ -47,7 +47,7 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
     ctx.clearRect(0, 0, width, height);
 
     // Draw grid lines
-    ctx.strokeStyle = 'rgba(187, 92, 45, 0.03)';
+    ctx.strokeStyle = 'rgba(15, 76, 129, 0.04)';
     ctx.lineWidth = 1;
     const gridSpacing = 40;
     for (let x = 0; x < width; x += gridSpacing) {
@@ -65,7 +65,7 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
 
     // Draw stylized District Boundary
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(187, 92, 45, 0.08)';
+    ctx.strokeStyle = 'rgba(15, 76, 129, 0.15)';
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 4]);
     // Draw an approximate boundary circle/path around the center coordinates
@@ -100,7 +100,7 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
       const midY = (fromCoords.y + toCoords.y) / 2 - 40; // curve upwards
 
       ctx.beginPath();
-      ctx.strokeStyle = route.urgency === 'High' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)';
+      ctx.strokeStyle = route.urgency === 'High' ? 'rgba(185, 28, 28, 0.4)' : 'rgba(21, 128, 61, 0.4)';
       ctx.lineWidth = 2.5;
       ctx.setLineDash([5, 5]);
       ctx.moveTo(fromCoords.x, fromCoords.y);
@@ -109,7 +109,7 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
       ctx.setLineDash([]);
 
       // Flowing glow dots animation
-      ctx.fillStyle = route.urgency === 'High' ? 'hsl(350, 89%, 60%)' : 'hsl(145, 63%, 49%)';
+      ctx.fillStyle = route.urgency === 'High' ? '#b91c1c' : '#15803d';
       ctx.beginPath();
       // Calculate dot position along the Bezier curve using t = 0 to 1 based on animationOffset
       const t = (animationOffset / 40);
@@ -117,7 +117,7 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
       const dotY = (1 - t) * (1 - t) * fromCoords.y + 2 * (1 - t) * t * midY + t * t * toCoords.y;
       
       // Draw glowing dot
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 4;
       ctx.shadowColor = ctx.fillStyle;
       ctx.arc(dotX, dotY, 6, 0, 2 * Math.PI);
       ctx.fill();
@@ -131,14 +131,14 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
       const isSelected = selectedCenter?.id === center.id;
 
       // Color code by status
-      let color = 'hsl(210, 100%, 65%)'; // normal
-      let glowColor = 'rgba(59, 130, 246, 0.2)';
+      let color = '#0b4c8c'; // normal (deep blue)
+      let glowColor = 'rgba(11, 76, 140, 0.12)';
       if (center.status === 'warning') {
-        color = 'hsl(38, 92%, 50%)';
-        glowColor = 'rgba(245, 158, 11, 0.2)';
+        color = '#d97706'; // warning (saffron)
+        glowColor = 'rgba(217, 119, 6, 0.12)';
       } else if (center.status === 'critical') {
-        color = 'hsl(350, 89%, 60%)';
-        glowColor = 'rgba(239, 68, 68, 0.3)';
+        color = '#b91c1c'; // critical (red)
+        glowColor = 'rgba(185, 28, 28, 0.12)';
       }
 
       // 1. Draw glowing outer halo (pulse animated for warnings/criticals)
@@ -164,9 +164,9 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
       ctx.fill();
 
       // 4. Center Name Label Text
-      ctx.fillStyle = isHovered || isSelected ? '#ffffff' : 'hsl(215, 20%, 75%)';
-      ctx.font = isHovered || isSelected ? 'bold 12px Outfit' : '500 11px Outfit';
-      ctx.shadowColor = '#000000';
+      ctx.fillStyle = isHovered || isSelected ? 'var(--primary)' : 'var(--text-main)';
+      ctx.font = isHovered || isSelected ? 'bold 12px Inter' : '600 11px Inter';
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.85)';
       ctx.shadowBlur = 4;
       ctx.textAlign = 'center';
       ctx.fillText(center.name, coords.x, coords.y - 18);
@@ -228,18 +228,19 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
           position: 'absolute',
           bottom: '12px',
           left: '12px',
-          background: 'rgba(9, 11, 20, 0.85)',
+          background: '#ffffff',
           padding: '8px 12px',
           borderRadius: 'var(--radius-sm)',
           border: '1px solid var(--border-color)',
           display: 'flex',
           gap: '12px',
           fontSize: '0.75rem',
-          backdropFilter: 'blur(8px)',
+          color: 'var(--text-main)',
+          boxShadow: 'var(--shadow-sm)',
           zIndex: 10
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--status-normal)', display: 'inline-block' }} /> Normal
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', display: 'inline-block' }} /> Normal
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--status-warning)', display: 'inline-block' }} /> Warning
@@ -248,7 +249,7 @@ export default function InteractiveMap({ centers, redistributions, onCenterClick
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--status-critical)', display: 'inline-block' }} /> Critical
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderLeft: '1px solid var(--border-color)', paddingLeft: '8px' }}>
-            <span style={{ width: '16px', height: '2px', background: 'rgba(187, 92, 45, 0.4)', borderTop: '1px dashed var(--primary)', display: 'inline-block' }} /> AI Transit
+            <span style={{ width: '16px', height: '2px', background: 'var(--primary-glow)', borderTop: '1px dashed var(--primary)', display: 'inline-block' }} /> AI Transit
           </div>
         </div>
       </div>

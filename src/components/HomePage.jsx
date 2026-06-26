@@ -91,14 +91,31 @@ export default function HomePage({ onLogin }) {
 
   return (
     <div className="homepage">
-      {/* Top Navigation Bar */}
+      {/* 1. Accessibility Top Utility Bar */}
+      <div className="gov-top-bar">
+        <div className="gov-top-bar-inner">
+          <div className="gov-top-bar-left">
+            <span>राष्ट्रीय स्वास्थ्य मिशन | National Health Mission</span>
+          </div>
+          <div className="gov-top-bar-right">
+            <a href="#features" className="gov-top-bar-link">Skip to Main Content</a>
+            <div className="gov-accessibility-controls">
+              <button className="gov-accessibility-btn" onClick={() => document.documentElement.style.fontSize = '14px'}>A-</button>
+              <button className="gov-accessibility-btn" onClick={() => document.documentElement.style.fontSize = '16px'}>A</button>
+              <button className="gov-accessibility-btn" onClick={() => document.documentElement.style.fontSize = '18px'}>A+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Top Navigation Bar */}
       <header className="home-navbar">
         <div className="home-navbar-inner">
           <div className="home-logo">
-            <span className="home-logo-icon">🏥</span>
+            <span style={{ fontSize: '2.2rem' }}>🏛️</span>
             <div>
               <span className="home-logo-text">Chikitsalay Setu</span>
-              <span className="home-logo-sub">चिकित्सालय सेतु</span>
+              <span className="home-logo-sub">चिकित्सालय सेतु (Government of India)</span>
             </div>
           </div>
           <div className="home-nav-actions">
@@ -112,6 +129,13 @@ export default function HomePage({ onLogin }) {
           </div>
         </div>
       </header>
+
+      {/* 3. Tricolor Ribbon */}
+      <div className="tricolor-ribbon">
+        <div className="tricolor-orange"></div>
+        <div className="tricolor-white"></div>
+        <div className="tricolor-green"></div>
+      </div>
 
       {/* Emergency Helpline Bar */}
       <div className="helpline-bar">
@@ -129,20 +153,10 @@ export default function HomePage({ onLogin }) {
 
       {/* Hero Section */}
       <section className="hero-section">
-        <div className="hero-bg-particles">
-          {/* Floating icons */}
-          <span className="hero-float-icon" style={{ top: '15%', left: '8%', animationDelay: '0s' }}>💊</span>
-          <span className="hero-float-icon" style={{ top: '25%', right: '12%', animationDelay: '1.5s' }}>🩺</span>
-          <span className="hero-float-icon" style={{ bottom: '20%', left: '15%', animationDelay: '0.8s' }}>🏥</span>
-          <span className="hero-float-icon" style={{ top: '60%', right: '8%', animationDelay: '2.2s' }}>💉</span>
-          <span className="hero-float-icon" style={{ top: '45%', left: '5%', animationDelay: '3s' }}>❤️</span>
-          <span className="hero-float-icon" style={{ bottom: '30%', right: '18%', animationDelay: '1s' }}>🧪</span>
-        </div>
-
         <div className="hero-content">
           <div className="hero-badge">
-            <Sparkles size={14} />
-            <span>AI-Powered Health Management Platform</span>
+            <Shield size={14} />
+            <span>AI-Driven Health Infrastructure and Logistics Platform</span>
           </div>
 
           <h1 className="hero-title">

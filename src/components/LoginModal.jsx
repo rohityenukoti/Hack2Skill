@@ -6,8 +6,8 @@ const ROLE_CONFIG = {
     title: 'Administrator Login',
     subtitle: 'District Health Dashboard Access',
     icon: <Shield size={32} />,
-    color: 'hsl(210, 100%, 65%)',
-    glow: 'hsla(210, 100%, 65%, 0.25)',
+    color: '#0b4c8c',
+    glow: 'rgba(11, 76, 140, 0.15)',
     fields: [
       { name: 'districtId', label: 'District ID', placeholder: 'e.g. DHARWAD-01', type: 'text' },
       { name: 'password', label: 'Password', placeholder: 'Enter admin password', type: 'password' }
@@ -18,8 +18,8 @@ const ROLE_CONFIG = {
     title: 'Health Center Login',
     subtitle: 'PHC/CHC Staff Portal Access',
     icon: <Hospital size={32} />,
-    color: 'hsl(187, 92%, 45%)',
-    glow: 'hsla(187, 92%, 45%, 0.25)',
+    color: '#15803d',
+    glow: 'rgba(21, 128, 61, 0.15)',
     fields: [
       { name: 'centerCode', label: 'Center Code', placeholder: 'e.g. PHC-NARENDRA', type: 'text' },
       { name: 'staffPin', label: 'Staff PIN', placeholder: 'Enter 4-digit PIN', type: 'password' }
@@ -30,8 +30,8 @@ const ROLE_CONFIG = {
     title: 'Citizen Login',
     subtitle: 'Public Health Services',
     icon: <Heart size={32} />,
-    color: 'hsl(145, 63%, 49%)',
-    glow: 'hsla(145, 63%, 49%, 0.25)',
+    color: '#d97706',
+    glow: 'rgba(217, 119, 6, 0.15)',
     fields: [
       { name: 'mobile', label: 'Mobile Number', placeholder: 'Enter 10-digit number', type: 'tel' },
       { name: 'otp', label: 'OTP', placeholder: 'Enter OTP (any 4 digits)', type: 'text' }

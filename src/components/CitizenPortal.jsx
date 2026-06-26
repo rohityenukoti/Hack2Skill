@@ -35,25 +35,25 @@ const HEALTH_SCHEMES = [
     name: "Ayushman Bharat (PMJAY)",
     description: "Free treatment up to ₹5 lakh per family per year for secondary and tertiary hospitalization.",
     icon: <ShieldCheck size={24} />,
-    color: "hsl(210, 100%, 65%)"
+    color: "#0b4c8c"
   },
   {
     name: "Janani Suraksha Yojana",
     description: "Cash assistance for institutional deliveries to promote safe motherhood.",
     icon: <Heart size={24} />,
-    color: "hsl(340, 82%, 60%)"
+    color: "#b91c1c"
   },
   {
     name: "National Health Mission",
     description: "Strengthening rural health infrastructure, ensuring free drugs, diagnostics & ambulance services.",
     icon: <Activity size={24} />,
-    color: "hsl(145, 63%, 49%)"
+    color: "#15803d"
   },
   {
     name: "Rashtriya Bal Swasthya Karyakram",
     description: "Free health screening for children 0-18 years for 4Ds: Defects, Diseases, Deficiencies, Development Delays.",
     icon: <Thermometer size={24} />,
-    color: "hsl(38, 92%, 50%)"
+    color: "#d97706"
   }
 ];
 
