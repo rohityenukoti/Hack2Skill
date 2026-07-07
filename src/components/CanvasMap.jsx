@@ -1,4 +1,27 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+
+const DEFAULT_BOUNDS = {
+  minLat: 15.15,
+  maxLat: 15.52,
+  minLng: 74.85,
+  maxLng: 75.28,
+};
+
+function computeBounds(centers) {
+  if (!centers.length) return DEFAULT_BOUNDS;
+  const lats = centers.map((c) => c.coordinates.lat);
+  const lngs = centers.map((c) => c.coordinates.lng);
+  const latSpan = Math.max(...lats) - Math.min(...lats);
+  const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+  const latPadding = Math.max(latSpan * 0.18, 0.04);
+  const lngPadding = Math.max(lngSpan * 0.18, 0.04);
+  return {
+    minLat: Math.min(...lats) - latPadding,
+    maxLat: Math.max(...lats) + latPadding,
+    minLng: Math.min(...lngs) - lngPadding,
+    maxLng: Math.max(...lngs) + lngPadding,
+  };
+}
 
 export default function CanvasMap({ centers, redistributions, onCenterClick }) {
   const canvasRef = useRef(null);
@@ -6,12 +29,7 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [animationOffset, setAnimationOffset] = useState(0);
 
-  const MAP_BOUNDS = {
-    minLat: 15.15,
-    maxLat: 15.52,
-    minLng: 74.85,
-    maxLng: 75.28,
-  };
+  const mapBounds = useMemo(() => computeBounds(centers), [centers]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -21,10 +39,41 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
   }, []);
 
   const getCanvasCoords = (lat, lng, width, height) => {
-    const padding = 50;
-    const x = padding + ((lng - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) * (width - 2 * padding);
-    const y = height - padding - ((lat - MAP_BOUNDS.minLat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * (height - 2 * padding);
+    const padding = 56;
+    const x = padding + ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * (width - 2 * padding);
+    const y = height - padding - ((lat - mapBounds.minLat) / (mapBounds.maxLat - mapBounds.minLat)) * (height - 2 * padding);
     return { x, y };
+  };
+
+  const drawCriticalTooltip = (ctx, center, coords) => {
+    const lines = [center.name, 'URGENT — Intervention required'];
+    ctx.font = '700 11px Inter';
+    const lineWidths = lines.map((line) => ctx.measureText(line).width);
+    const boxWidth = Math.max(...lineWidths) + 20;
+    const boxHeight = 46;
+    const boxX = coords.x - boxWidth / 2;
+    const boxY = coords.y - 58;
+
+    ctx.fillStyle = '#7f1d1d';
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+    ctx.fill();
+
+    ctx.fillStyle = '#fecaca';
+    ctx.beginPath();
+    ctx.moveTo(coords.x - 6, boxY + boxHeight);
+    ctx.lineTo(coords.x + 6, boxY + boxHeight);
+    ctx.lineTo(coords.x, boxY + boxHeight + 8);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.font = '700 11px Inter';
+    ctx.fillText(lines[0], coords.x, boxY + 16);
+    ctx.font = '600 9px Inter';
+    ctx.fillStyle = '#fecaca';
+    ctx.fillText(lines[1], coords.x, boxY + 32);
   };
 
   useEffect(() => {
@@ -55,16 +104,30 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
       let color = '#0b4c8c';
       if (center.status === 'warning') color = '#d97706';
       else if (center.status === 'critical') color = '#b91c1c';
+
+      if (center.status === 'critical') {
+        const pulse = 10 + Math.sin(animationOffset * 0.25) * 3;
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+        ctx.beginPath();
+        ctx.arc(coords.x, coords.y, pulse + 6, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(coords.x, coords.y, 8, 0, 2 * Math.PI);
+      ctx.arc(coords.x, coords.y, center.status === 'critical' ? 9 : 8, 0, 2 * Math.PI);
       ctx.fill();
-      ctx.fillStyle = '#333';
-      ctx.font = '600 11px Inter';
-      ctx.textAlign = 'center';
-      ctx.fillText(center.name, coords.x, coords.y - 14);
+
+      if (center.status === 'critical') {
+        drawCriticalTooltip(ctx, center, coords);
+      } else {
+        ctx.fillStyle = '#333';
+        ctx.font = '600 11px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText(center.name, coords.x, coords.y - 14);
+      }
     });
-  }, [centers, redistributions, hoveredCenter, selectedCenter, animationOffset]);
+  }, [centers, redistributions, hoveredCenter, selectedCenter, animationOffset, mapBounds]);
 
   const handleMouseClick = (e) => {
     const canvas = canvasRef.current;

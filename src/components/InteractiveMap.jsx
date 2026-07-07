@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { GoogleMap, LoadScript, Marker, Polyline, InfoWindow } from '@react-google-maps/api';
 import CanvasMap from './CanvasMap';
 
@@ -12,8 +12,20 @@ function statusColor(status) {
   return '#0b4c8c';
 }
 
+function CriticalTooltip({ center }) {
+  return (
+    <div className="map-critical-tooltip">
+      <span className="map-critical-tooltip__badge">URGENT</span>
+      <strong>{center.name}</strong>
+      <p>{center.location}</p>
+      <span className="map-critical-tooltip__status">Immediate intervention required</span>
+    </div>
+  );
+}
+
 function GoogleMapsView({ centers, redistributions, onCenterClick }) {
   const [selectedCenter, setSelectedCenter] = useState(null);
+  const mapRef = useRef(null);
 
   const center = useMemo(() => {
     if (!centers.length) return { lat: 15.35, lng: 75.05 };
@@ -21,6 +33,27 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
     const lng = centers.reduce((s, c) => s + c.coordinates.lng, 0) / centers.length;
     return { lat, lng };
   }, [centers]);
+
+  const criticalCenters = useMemo(
+    () => centers.filter((c) => c.status === 'critical'),
+    [centers],
+  );
+
+  const fitMapToCenters = useCallback((map) => {
+    if (!map || !centers.length || !window.google?.maps) return;
+    const bounds = new window.google.maps.LatLngBounds();
+    centers.forEach((c) => bounds.extend(c.coordinates));
+    map.fitBounds(bounds, 48);
+  }, [centers]);
+
+  const onMapLoad = useCallback((map) => {
+    mapRef.current = map;
+    fitMapToCenters(map);
+  }, [fitMapToCenters]);
+
+  useEffect(() => {
+    fitMapToCenters(mapRef.current);
+  }, [fitMapToCenters]);
 
   const routes = useMemo(() => {
     return (redistributions || []).map((route) => {
@@ -40,25 +73,45 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
 
   return (
     <LoadScript googleMapsApiKey={MAPS_KEY}>
-      <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={11} mapTypeId="roadmap">
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={center}
+        zoom={10}
+        mapTypeId="roadmap"
+        onLoad={onMapLoad}
+      >
         {centers.map((c) => (
           <Marker
             key={c.id}
             position={{ lat: c.coordinates.lat, lng: c.coordinates.lng }}
             icon={{
               path: window.google?.maps?.SymbolPath?.CIRCLE ?? 0,
-              scale: 10,
+              scale: c.status === 'critical' ? 12 : 10,
               fillColor: statusColor(c.status),
               fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 2,
+              strokeColor: c.status === 'critical' ? '#fecaca' : '#ffffff',
+              strokeWeight: c.status === 'critical' ? 3 : 2,
             }}
+            animation={c.status === 'critical' ? window.google?.maps?.Animation?.BOUNCE : undefined}
             title={c.name}
             onClick={() => {
               setSelectedCenter(c);
               onCenterClick?.(c);
             }}
           />
+        ))}
+
+        {criticalCenters.map((c) => (
+          <InfoWindow
+            key={`critical-${c.id}`}
+            position={{ lat: c.coordinates.lat, lng: c.coordinates.lng }}
+            options={{
+              disableAutoPan: true,
+              ...(window.google?.maps ? { pixelOffset: new window.google.maps.Size(0, -18) } : {}),
+            }}
+          >
+            <CriticalTooltip center={c} />
+          </InfoWindow>
         ))}
 
         {routes.map((r, idx) => (
@@ -74,7 +127,7 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
           />
         ))}
 
-        {selectedCenter && (
+        {selectedCenter && selectedCenter.status !== 'critical' && (
           <InfoWindow
             position={{ lat: selectedCenter.coordinates.lat, lng: selectedCenter.coordinates.lng }}
             onCloseClick={() => setSelectedCenter(null)}
