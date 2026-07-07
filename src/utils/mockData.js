@@ -137,6 +137,8 @@ export const MOCK_INVENTORY = {
 export const MOCK_FEEDBACK = {
   "phc-narendra": [
     {
+      id: "demo-phc-narendra-0",
+      source: "demo",
       centerId: "phc-narendra",
       centerName: "PHC Narendra",
       rating: 3,
@@ -146,6 +148,8 @@ export const MOCK_FEEDBACK = {
       timestamp: "2026-07-05T09:15:00.000Z"
     },
     {
+      id: "demo-phc-narendra-1",
+      source: "demo",
       centerId: "phc-narendra",
       centerName: "PHC Narendra",
       rating: 4,
@@ -155,6 +159,8 @@ export const MOCK_FEEDBACK = {
       timestamp: "2026-07-03T11:40:00.000Z"
     },
     {
+      id: "demo-phc-narendra-2",
+      source: "demo",
       centerId: "phc-narendra",
       centerName: "PHC Narendra",
       rating: 2,
@@ -166,6 +172,8 @@ export const MOCK_FEEDBACK = {
   ],
   "phc-hebballi": [
     {
+      id: "demo-phc-hebballi-0",
+      source: "demo",
       centerId: "phc-hebballi",
       centerName: "PHC Hebballi",
       rating: 1,
@@ -175,6 +183,8 @@ export const MOCK_FEEDBACK = {
       timestamp: "2026-07-06T10:05:00.000Z"
     },
     {
+      id: "demo-phc-hebballi-1",
+      source: "demo",
       centerId: "phc-hebballi",
       centerName: "PHC Hebballi",
       rating: 2,
@@ -184,6 +194,8 @@ export const MOCK_FEEDBACK = {
       timestamp: "2026-07-04T14:30:00.000Z"
     },
     {
+      id: "demo-phc-hebballi-2",
+      source: "demo",
       centerId: "phc-hebballi",
       centerName: "PHC Hebballi",
       rating: 2,
@@ -195,6 +207,8 @@ export const MOCK_FEEDBACK = {
   ],
   "chc-kalghatgi": [
     {
+      id: "demo-chc-kalghatgi-0",
+      source: "demo",
       centerId: "chc-kalghatgi",
       centerName: "CHC Kalghatgi",
       rating: 5,
@@ -204,6 +218,8 @@ export const MOCK_FEEDBACK = {
       timestamp: "2026-07-06T12:00:00.000Z"
     },
     {
+      id: "demo-chc-kalghatgi-1",
+      source: "demo",
       centerId: "chc-kalghatgi",
       centerName: "CHC Kalghatgi",
       rating: 4,
@@ -215,6 +231,8 @@ export const MOCK_FEEDBACK = {
   ],
   "phc-mugad": [
     {
+      id: "demo-phc-mugad-0",
+      source: "demo",
       centerId: "phc-mugad",
       centerName: "PHC Mugad",
       rating: 4,
@@ -224,6 +242,8 @@ export const MOCK_FEEDBACK = {
       timestamp: "2026-07-05T15:20:00.000Z"
     },
     {
+      id: "demo-phc-mugad-1",
+      source: "demo",
       centerId: "phc-mugad",
       centerName: "PHC Mugad",
       rating: 5,
@@ -235,6 +255,8 @@ export const MOCK_FEEDBACK = {
   ],
   "chc-kundgol": [
     {
+      id: "demo-chc-kundgol-0",
+      source: "demo",
       centerId: "chc-kundgol",
       centerName: "CHC Kundgol",
       rating: 3,
@@ -244,6 +266,8 @@ export const MOCK_FEEDBACK = {
       timestamp: "2026-07-06T08:30:00.000Z"
     },
     {
+      id: "demo-chc-kundgol-1",
+      source: "demo",
       centerId: "chc-kundgol",
       centerName: "CHC Kundgol",
       rating: 3,
@@ -253,6 +277,8 @@ export const MOCK_FEEDBACK = {
       timestamp: "2026-07-04T11:15:00.000Z"
     },
     {
+      id: "demo-chc-kundgol-2",
+      source: "demo",
       centerId: "chc-kundgol",
       centerName: "CHC Kundgol",
       rating: 4,

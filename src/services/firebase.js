@@ -27,19 +27,41 @@ if (!localStorage.getItem(LOCAL_CENTERS_KEY)) {
 if (!localStorage.getItem(LOCAL_INVENTORY_KEY)) {
   localStorage.setItem(LOCAL_INVENTORY_KEY, JSON.stringify(MOCK_INVENTORY));
 }
-if (!localStorage.getItem(LOCAL_FEEDBACK_KEY)) {
-  localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(MOCK_FEEDBACK));
-} else {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '{}');
-    const hasAny = Object.values(parsed).some((items) => Array.isArray(items) && items.length > 0);
-    if (!hasAny) {
-      localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(MOCK_FEEDBACK));
+
+function mergeWithDemoFeedback(centerId, items = []) {
+  const demoItems = MOCK_FEEDBACK[centerId] || [];
+  if (demoItems.length === 0) return items;
+
+  const existingIds = new Set(items.map((item) => item.id).filter(Boolean));
+  const missingDemo = demoItems.filter((item) => item.id && !existingIds.has(item.id));
+  if (missingDemo.length === 0) return items;
+
+  return [...items, ...missingDemo].sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  );
+}
+
+function mergeDemoFeedbackIntoStorage() {
+  const stored = JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '{}');
+  let changed = false;
+  const merged = { ...stored };
+
+  for (const [centerId, demoItems] of Object.entries(MOCK_FEEDBACK)) {
+    const existing = merged[centerId] || [];
+    const existingIds = new Set(existing.map((item) => item.id).filter(Boolean));
+    const toAdd = demoItems.filter((item) => item.id && !existingIds.has(item.id));
+    if (toAdd.length > 0) {
+      merged[centerId] = [...existing, ...toAdd];
+      changed = true;
     }
-  } catch {
-    localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(MOCK_FEEDBACK));
+  }
+
+  if (changed || !localStorage.getItem(LOCAL_FEEDBACK_KEY)) {
+    localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(merged));
   }
 }
+
+mergeDemoFeedbackIntoStorage();
 
 const localListeners = new Set();
 
@@ -89,8 +111,9 @@ export async function seedFirestoreIfEmpty() {
           await setDoc(doc(db, `centers/${center.id}/inventory`, cleanItemName), item);
         }
         const feedbackItems = MOCK_FEEDBACK[center.id] || [];
-        for (const [idx, fb] of feedbackItems.entries()) {
-          await setDoc(doc(db, `centers/${center.id}/feedback`, `demo-${idx}`), fb);
+        for (const fb of feedbackItems) {
+          const docId = fb.id || `demo-${center.id}-${fb.timestamp}`;
+          await setDoc(doc(db, `centers/${center.id}/feedback`, docId), fb);
         }
       }
     }
@@ -330,7 +353,7 @@ export async function saveFeedback(centerId, feedbackObj) {
 
 export function getFeedbackForCenter(centerId) {
   const allFeedback = JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '{}');
-  return allFeedback[centerId] || [];
+  return mergeWithDemoFeedback(centerId, allFeedback[centerId] || []);
 }
 
 function mirrorFeedbackToLocal(centerId, entry) {
@@ -364,8 +387,9 @@ export function subscribeToFeedback(centerId, onUpdate) {
     return onSnapshot(q, (snapshot) => {
       const items = [];
       snapshot.forEach((d) => items.push({ id: d.id, ...d.data() }));
-      mirrorFeedbackListToLocal(centerId, items);
-      onUpdate(items);
+      const merged = mergeWithDemoFeedback(centerId, items);
+      mirrorFeedbackListToLocal(centerId, merged);
+      onUpdate(merged);
     }, () => onUpdate(getFeedbackForCenter(centerId)));
   }
   onUpdate(getFeedbackForCenter(centerId));

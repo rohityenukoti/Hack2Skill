@@ -74,8 +74,9 @@ export async function seedDemoUsersAndData(mockCenters, mockInventory, mockFeedb
       await db.doc(`centers/${center.id}/inventory/${cleanItemName}`).set(item, { merge: true });
     }
     const feedbackItems = mockFeedback[center.id] || [];
-    for (const [idx, fb] of feedbackItems.entries()) {
-      await db.doc(`centers/${center.id}/feedback/demo-${idx}`).set(fb, { merge: true });
+    for (const fb of feedbackItems) {
+      const docId = fb.id || `demo-${center.id}-${fb.timestamp}`;
+      await db.doc(`centers/${center.id}/feedback/${docId}`).set(fb, { merge: true });
     }
   }
 
