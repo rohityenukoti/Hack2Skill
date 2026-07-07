@@ -20,14 +20,67 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { saveFeedback, getFeedbackForCenter } from '../services/firebase';
-import { translateUiText } from '../services/translation';
+import { translateUiObject, translateUiStrings } from '../services/translation';
 
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English' },
   { code: 'hi', label: 'हिंदी' },
   { code: 'kn', label: 'ಕನ್ನಡ' },
   { code: 'te', label: 'తెలుగు' },
+  { code: 'ta', label: 'தமிழ்' },
 ];
+
+const UI_STRINGS = {
+  pageTitle: 'Citizen Health Portal',
+  pageSubtitle: 'Find nearby health centers, check availability, and share your experience.',
+  tabFind: 'Find Health Centers',
+  tabFeedback: 'Give Feedback',
+  tabSchemes: 'Health Schemes',
+  searchPlaceholder: 'Search by center name or location...',
+  filterAll: 'All Types',
+  filterPhc: 'PHC Only',
+  filterChc: 'CHC Only',
+  statusAvailable: 'Available',
+  statusBusy: 'Busy',
+  statusOvercrowded: 'Overcrowded',
+  statusUnknown: 'Unknown',
+  bedsFree: 'Beds Free',
+  doctors: 'Doctors',
+  patientsToday: 'Patients Today',
+  distance: 'Distance',
+  diagnosticTests: 'Available Diagnostic Tests',
+  rateCenter: 'Rate This Center',
+  noResults: 'No health centers found matching your search.',
+  feedbackTitle: 'Share Your Experience',
+  feedbackSubtitle: 'Your feedback helps improve healthcare services for everyone in the district.',
+  feedbackThanksTitle: 'Thank You for Your Feedback!',
+  feedbackThanksBody: 'Your input helps us improve healthcare delivery across the district.',
+  feedbackCenterLabel: 'Which center did you visit?',
+  feedbackCenterPlaceholder: 'Select a health center...',
+  feedbackNameLabel: 'Your Name (optional)',
+  feedbackNamePlaceholder: 'Enter your name or leave blank for anonymous',
+  feedbackRatingLabel: 'Overall Rating',
+  feedbackRatingTap: 'Tap to rate',
+  feedbackRatingPoor: 'Poor',
+  feedbackRatingBelowAvg: 'Below Average',
+  feedbackRatingAvg: 'Average',
+  feedbackRatingGood: 'Good',
+  feedbackRatingExcellent: 'Excellent',
+  feedbackCategoriesLabel: 'What aspects are you rating? (select all that apply)',
+  feedbackTextLabel: 'Detailed Feedback',
+  feedbackTextPlaceholder: 'Share your experience in detail... What went well? What can be improved?',
+  feedbackSubmit: 'Submit Feedback',
+  recentFeedback: 'Recent Feedback for',
+  noFeedbackYet: 'No feedback submitted for this center yet. Be the first to share your experience!',
+  emergencyHelplines: 'Emergency Helplines',
+  helplineHealth: 'Health Helpline',
+  helplineAmbulance: 'Ambulance Service',
+  helplineEmergency: 'Emergency Services',
+  helplineWomen: 'Women Helpline',
+  helplineChild: 'Child Helpline',
+  helplineAyushman: 'Ayushman Bharat',
+  translating: 'Translating...',
+};
 
 const FEEDBACK_CATEGORIES = [
   'Cleanliness',
@@ -80,7 +133,10 @@ export default function CitizenPortal({ centers }) {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [feedbackName, setFeedbackName] = useState('');
   const [language, setLanguage] = useState('en');
+  const [ui, setUi] = useState(UI_STRINGS);
   const [translatedSchemes, setTranslatedSchemes] = useState(HEALTH_SCHEMES);
+  const [translatedCategories, setTranslatedCategories] = useState(FEEDBACK_CATEGORIES);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   useEffect(() => {
     document.getElementById('main-content')?.scrollTo(0, 0);
@@ -88,20 +144,47 @@ export default function CitizenPortal({ centers }) {
 
   useEffect(() => {
     if (language === 'en') {
+      setUi(UI_STRINGS);
       setTranslatedSchemes(HEALTH_SCHEMES);
+      setTranslatedCategories(FEEDBACK_CATEGORIES);
+      setIsTranslating(false);
       return;
     }
+
     let cancelled = false;
     (async () => {
-      const translated = await Promise.all(
-        HEALTH_SCHEMES.map(async (scheme) => ({
-          ...scheme,
-          name: await translateUiText(scheme.name, language),
-          description: await translateUiText(scheme.description, language),
-        }))
-      );
-      if (!cancelled) setTranslatedSchemes(translated);
+      setIsTranslating(true);
+      try {
+        const [translatedUi, schemeNames, schemeDescriptions, categories] = await Promise.all([
+          translateUiObject(UI_STRINGS, language),
+          translateUiStrings(HEALTH_SCHEMES.map((s) => s.name), language),
+          translateUiStrings(HEALTH_SCHEMES.map((s) => s.description), language),
+          translateUiStrings(FEEDBACK_CATEGORIES, language),
+        ]);
+
+        if (cancelled) return;
+
+        setUi(translatedUi);
+        setTranslatedSchemes(
+          HEALTH_SCHEMES.map((scheme, index) => ({
+            ...scheme,
+            name: schemeNames[index],
+            description: schemeDescriptions[index],
+          }))
+        );
+        setTranslatedCategories(categories);
+      } catch (error) {
+        console.error('Citizen portal translation failed:', error);
+        if (!cancelled) {
+          setUi(UI_STRINGS);
+          setTranslatedSchemes(HEALTH_SCHEMES);
+          setTranslatedCategories(FEEDBACK_CATEGORIES);
+        }
+      } finally {
+        if (!cancelled) setIsTranslating(false);
+      }
     })();
+
     return () => { cancelled = true; };
   }, [language]);
 
@@ -124,10 +207,10 @@ export default function CitizenPortal({ centers }) {
 
   const getStatusLabel = (status) => {
     switch(status) {
-      case 'normal': return 'Available';
-      case 'warning': return 'Busy';
-      case 'critical': return 'Overcrowded';
-      default: return 'Unknown';
+      case 'normal': return ui.statusAvailable;
+      case 'warning': return ui.statusBusy;
+      case 'critical': return ui.statusOvercrowded;
+      default: return ui.statusUnknown;
     }
   };
 
@@ -181,8 +264,8 @@ export default function CitizenPortal({ centers }) {
       {/* Top Header */}
       <div className="top-bar">
         <div className="page-title">
-          <h1>Citizen Health Portal</h1>
-          <p>Find nearby health centers, check availability, and share your experience.</p>
+          <h1>{ui.pageTitle}</h1>
+          <p>{ui.pageSubtitle}</p>
         </div>
       </div>
 
@@ -193,32 +276,38 @@ export default function CitizenPortal({ centers }) {
           onClick={() => setActiveTab('find')}
         >
           <MapPin size={16} />
-          Find Health Centers
+          {ui.tabFind}
         </button>
         <button
           className={`citizen-tab ${activeTab === 'feedback' ? 'active' : ''}`}
           onClick={() => setActiveTab('feedback')}
         >
           <Star size={16} />
-          Give Feedback
+          {ui.tabFeedback}
         </button>
         <button
           className={`citizen-tab ${activeTab === 'schemes' ? 'active' : ''}`}
           onClick={() => setActiveTab('schemes')}
         >
           <Heart size={16} />
-          Health Schemes
+          {ui.tabSchemes}
         </button>
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
           style={{ marginLeft: 'auto', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
           aria-label="Select language"
+          disabled={isTranslating}
         >
           {LANGUAGE_OPTIONS.map((opt) => (
             <option key={opt.code} value={opt.code}>{opt.label}</option>
           ))}
         </select>
+        {isTranslating && (
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+            {ui.translating}
+          </span>
+        )}
       </div>
 
       {/* Tab: Find Centers */}
@@ -230,7 +319,7 @@ export default function CitizenPortal({ centers }) {
               <Search size={18} />
               <input
                 type="text"
-                placeholder="Search by center name or location..."
+                placeholder={ui.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="citizen-search-input"
@@ -243,9 +332,9 @@ export default function CitizenPortal({ centers }) {
                 onChange={(e) => setFilterType(e.target.value)}
                 className="citizen-filter-select"
               >
-                <option value="all">All Types</option>
-                <option value="PHC">PHC Only</option>
-                <option value="CHC">CHC Only</option>
+                <option value="all">{ui.filterAll}</option>
+                <option value="PHC">{ui.filterPhc}</option>
+                <option value="CHC">{ui.filterChc}</option>
               </select>
             </div>
           </div>
@@ -286,28 +375,28 @@ export default function CitizenPortal({ centers }) {
                       <Bed size={16} style={{ color: bedsAvailable > 0 ? 'var(--status-success)' : 'var(--status-critical)' }} />
                       <div>
                         <span className="citizen-stat-value">{bedsAvailable}</span>
-                        <span className="citizen-stat-label">Beds Free</span>
+                        <span className="citizen-stat-label">{ui.bedsFree}</span>
                       </div>
                     </div>
                     <div className="citizen-stat">
                       <Stethoscope size={16} style={{ color: center.doctors.present > 0 ? 'var(--status-success)' : 'var(--status-critical)' }} />
                       <div>
                         <span className="citizen-stat-value">{center.doctors.present}/{center.doctors.total}</span>
-                        <span className="citizen-stat-label">Doctors</span>
+                        <span className="citizen-stat-label">{ui.doctors}</span>
                       </div>
                     </div>
                     <div className="citizen-stat">
                       <Users size={16} style={{ color: 'var(--primary)' }} />
                       <div>
                         <span className="citizen-stat-value">{center.footfall.today}</span>
-                        <span className="citizen-stat-label">Patients Today</span>
+                        <span className="citizen-stat-label">{ui.patientsToday}</span>
                       </div>
                     </div>
                     <div className="citizen-stat">
                       <MapPin size={16} style={{ color: 'var(--accent)' }} />
                       <div>
                         <span className="citizen-stat-value">{getDistanceEstimate(center)}</span>
-                        <span className="citizen-stat-label">Distance</span>
+                        <span className="citizen-stat-label">{ui.distance}</span>
                       </div>
                     </div>
                   </div>
@@ -316,7 +405,7 @@ export default function CitizenPortal({ centers }) {
                   {selectedCenter?.id === center.id && (
                     <div className="citizen-center-expanded fade-in">
                       <div className="citizen-center-divider" />
-                      <h4 className="citizen-center-section-title">Available Diagnostic Tests</h4>
+                      <h4 className="citizen-center-section-title">{ui.diagnosticTests}</h4>
                       <div className="citizen-tests-grid">
                         {Object.entries(center.diagnosticTests || {}).map(([test, available]) => (
                           <div key={test} className={`citizen-test-badge ${available ? 'available' : 'unavailable'}`}>
@@ -332,7 +421,7 @@ export default function CitizenPortal({ centers }) {
                           setFeedbackCenter(center.id);
                         }}>
                           <Star size={14} />
-                          Rate This Center
+                          {ui.rateCenter}
                         </button>
                       </div>
                     </div>
@@ -344,7 +433,7 @@ export default function CitizenPortal({ centers }) {
             {filteredCenters.length === 0 && (
               <div className="citizen-no-results glass-card">
                 <Search size={40} style={{ color: 'var(--text-muted)', strokeWidth: 1.5 }} />
-                <p>No health centers found matching your search.</p>
+                <p>{ui.noResults}</p>
               </div>
             )}
           </div>
@@ -357,30 +446,30 @@ export default function CitizenPortal({ centers }) {
           <div className="glass-card citizen-feedback-form-card">
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
               <Star size={20} style={{ color: 'var(--status-warning)' }} />
-              Share Your Experience
+              {ui.feedbackTitle}
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-              Your feedback helps improve healthcare services for everyone in the district.
+              {ui.feedbackSubtitle}
             </p>
 
             {feedbackSubmitted ? (
               <div className="citizen-feedback-success fade-in">
                 <CheckCircle size={48} style={{ color: 'var(--status-success)' }} />
-                <h3>Thank You for Your Feedback!</h3>
-                <p>Your input helps us improve healthcare delivery across the district.</p>
+                <h3>{ui.feedbackThanksTitle}</h3>
+                <p>{ui.feedbackThanksBody}</p>
               </div>
             ) : (
               <form onSubmit={handleSubmitFeedback} className="citizen-feedback-form">
                 {/* Select Center */}
                 <div className="login-field">
-                  <label className="login-field-label">Which center did you visit?</label>
+                  <label className="login-field-label">{ui.feedbackCenterLabel}</label>
                   <select
                     value={feedbackCenter}
                     onChange={(e) => setFeedbackCenter(e.target.value)}
                     style={{ width: '100%' }}
                     required
                   >
-                    <option value="">Select a health center...</option>
+                    <option value="">{ui.feedbackCenterPlaceholder}</option>
                     {centers.map(c => (
                       <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
                     ))}
@@ -389,10 +478,10 @@ export default function CitizenPortal({ centers }) {
 
                 {/* Name (optional) */}
                 <div className="login-field">
-                  <label className="login-field-label">Your Name (optional)</label>
+                  <label className="login-field-label">{ui.feedbackNameLabel}</label>
                   <input
                     type="text"
-                    placeholder="Enter your name or leave blank for anonymous"
+                    placeholder={ui.feedbackNamePlaceholder}
                     value={feedbackName}
                     onChange={(e) => setFeedbackName(e.target.value)}
                     style={{ width: '100%' }}
@@ -401,7 +490,7 @@ export default function CitizenPortal({ centers }) {
 
                 {/* Star Rating */}
                 <div className="login-field">
-                  <label className="login-field-label">Overall Rating</label>
+                  <label className="login-field-label">{ui.feedbackRatingLabel}</label>
                   <div className="citizen-star-rating">
                     {[1, 2, 3, 4, 5].map(star => (
                       <button
@@ -416,27 +505,27 @@ export default function CitizenPortal({ centers }) {
                       </button>
                     ))}
                     <span className="citizen-rating-label">
-                      {feedbackRating === 0 ? 'Tap to rate' :
-                       feedbackRating === 1 ? 'Poor' :
-                       feedbackRating === 2 ? 'Below Average' :
-                       feedbackRating === 3 ? 'Average' :
-                       feedbackRating === 4 ? 'Good' : 'Excellent'}
+                      {feedbackRating === 0 ? ui.feedbackRatingTap :
+                       feedbackRating === 1 ? ui.feedbackRatingPoor :
+                       feedbackRating === 2 ? ui.feedbackRatingBelowAvg :
+                       feedbackRating === 3 ? ui.feedbackRatingAvg :
+                       feedbackRating === 4 ? ui.feedbackRatingGood : ui.feedbackRatingExcellent}
                     </span>
                   </div>
                 </div>
 
                 {/* Category Tags */}
                 <div className="login-field">
-                  <label className="login-field-label">What aspects are you rating? (select all that apply)</label>
+                  <label className="login-field-label">{ui.feedbackCategoriesLabel}</label>
                   <div className="citizen-category-tags">
-                    {FEEDBACK_CATEGORIES.map(cat => (
+                    {FEEDBACK_CATEGORIES.map((cat, index) => (
                       <button
                         key={cat}
                         type="button"
                         className={`citizen-category-tag ${feedbackCategories.includes(cat) ? 'active' : ''}`}
                         onClick={() => toggleFeedbackCategory(cat)}
                       >
-                        {cat}
+                        {translatedCategories[index] || cat}
                       </button>
                     ))}
                   </div>
@@ -444,11 +533,11 @@ export default function CitizenPortal({ centers }) {
 
                 {/* Text Feedback */}
                 <div className="login-field">
-                  <label className="login-field-label">Detailed Feedback</label>
+                  <label className="login-field-label">{ui.feedbackTextLabel}</label>
                   <textarea
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
-                    placeholder="Share your experience in detail... What went well? What can be improved?"
+                    placeholder={ui.feedbackTextPlaceholder}
                     rows={4}
                     style={{ width: '100%', resize: 'vertical' }}
                   />
@@ -461,7 +550,7 @@ export default function CitizenPortal({ centers }) {
                   style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}
                 >
                   <Send size={16} />
-                  Submit Feedback
+                  {ui.feedbackSubmit}
                 </button>
               </form>
             )}
@@ -472,9 +561,9 @@ export default function CitizenPortal({ centers }) {
             <div className="glass-card" style={{ marginTop: '1.5rem' }}>
               <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Clock size={18} style={{ color: 'var(--primary)' }} />
-                Recent Feedback for {centers.find(c => c.id === feedbackCenter)?.name || 'Selected Center'}
+                {ui.recentFeedback} {centers.find(c => c.id === feedbackCenter)?.name || 'Selected Center'}
               </h3>
-              <FeedbackList centerId={feedbackCenter} />
+              <FeedbackList centerId={feedbackCenter} emptyMessage={ui.noFeedbackYet} />
             </div>
           )}
         </div>
@@ -499,32 +588,32 @@ export default function CitizenPortal({ centers }) {
           <div className="glass-card" style={{ marginTop: '2rem' }}>
             <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Phone size={20} style={{ color: 'var(--status-critical)' }} />
-              Emergency Helplines
+              {ui.emergencyHelplines}
             </h3>
             <div className="citizen-helplines-grid">
               <div className="citizen-helpline-card">
                 <span className="citizen-helpline-number">104</span>
-                <span className="citizen-helpline-label">Health Helpline</span>
+                <span className="citizen-helpline-label">{ui.helplineHealth}</span>
               </div>
               <div className="citizen-helpline-card">
                 <span className="citizen-helpline-number">108</span>
-                <span className="citizen-helpline-label">Ambulance Service</span>
+                <span className="citizen-helpline-label">{ui.helplineAmbulance}</span>
               </div>
               <div className="citizen-helpline-card">
                 <span className="citizen-helpline-number">112</span>
-                <span className="citizen-helpline-label">Emergency Services</span>
+                <span className="citizen-helpline-label">{ui.helplineEmergency}</span>
               </div>
               <div className="citizen-helpline-card">
                 <span className="citizen-helpline-number">181</span>
-                <span className="citizen-helpline-label">Women Helpline</span>
+                <span className="citizen-helpline-label">{ui.helplineWomen}</span>
               </div>
               <div className="citizen-helpline-card">
                 <span className="citizen-helpline-number">1098</span>
-                <span className="citizen-helpline-label">Child Helpline</span>
+                <span className="citizen-helpline-label">{ui.helplineChild}</span>
               </div>
               <div className="citizen-helpline-card">
                 <span className="citizen-helpline-number">1800-180-1104</span>
-                <span className="citizen-helpline-label">Ayushman Bharat</span>
+                <span className="citizen-helpline-label">{ui.helplineAyushman}</span>
               </div>
             </div>
           </div>
@@ -535,13 +624,13 @@ export default function CitizenPortal({ centers }) {
 }
 
 // Sub-component: Feedback list for a center
-function FeedbackList({ centerId }) {
+function FeedbackList({ centerId, emptyMessage }) {
   const feedbacks = getFeedbackForCenter(centerId);
 
   if (!feedbacks || feedbacks.length === 0) {
     return (
       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '1.5rem' }}>
-        No feedback submitted for this center yet. Be the first to share your experience!
+        {emptyMessage}
       </p>
     );
   }

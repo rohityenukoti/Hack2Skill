@@ -8,7 +8,7 @@ const geminiApiKey = defineSecret('GEMINI_API_KEY');
 import { analyzeDistrictData, parseVoiceTranscript } from './ai.js';
 import { transcribeAudioBase64 } from './speech.js';
 import { syncFirestoreToBigQuery, getInventoryTrendSummary } from './bigquery.js';
-import { translateText, getSupportedLanguages } from './translation.js';
+import { translateText, translateBatch, getSupportedLanguages } from './translation.js';
 import { seedDemoUsersAndData, DEMO_USERS } from './seed.js';
 import { MOCK_CENTERS, MOCK_INVENTORY } from './mockData.js';
 
@@ -108,7 +108,41 @@ export const translateTextFn = onCall(
       return await translateText(text, targetLanguage || 'hi');
     } catch (error) {
       console.error('translateText error:', error);
-      throw new HttpsError('internal', error.message || 'Translation failed');
+      const message = error.message || 'Translation failed';
+      if (message.includes('Cloud Translation API') || message.includes('PERMISSION_DENIED')) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Cloud Translation API is not enabled. Enable translate.googleapis.com in GCP Console.'
+        );
+      }
+      throw new HttpsError('internal', message);
+    }
+  }
+);
+
+export const translateBatchFn = onCall(
+  { region: 'asia-south1', maxInstances: 10 },
+  async (request) => {
+    requireAuth(request);
+    const { texts, targetLanguage } = request.data || {};
+    if (!Array.isArray(texts) || texts.length === 0) {
+      throw new HttpsError('invalid-argument', 'texts array is required');
+    }
+    if (texts.length > 50) {
+      throw new HttpsError('invalid-argument', 'Maximum 50 strings per batch');
+    }
+    try {
+      return await translateBatch(texts, targetLanguage || 'hi');
+    } catch (error) {
+      console.error('translateBatch error:', error);
+      const message = error.message || 'Batch translation failed';
+      if (message.includes('Cloud Translation API') || message.includes('PERMISSION_DENIED')) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Cloud Translation API is not enabled. Enable translate.googleapis.com in GCP Console.'
+        );
+      }
+      throw new HttpsError('internal', message);
     }
   }
 );

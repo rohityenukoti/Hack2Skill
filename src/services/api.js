@@ -35,6 +35,13 @@ export async function callTranslateText(text, targetLanguage = 'hi') {
   return result.data;
 }
 
+export async function callTranslateBatch(texts, targetLanguage = 'hi') {
+  const fn = getCallable('translateBatchFn');
+  if (!fn || !isFirebaseLive()) return null;
+  const result = await fn({ texts, targetLanguage });
+  return result.data;
+}
+
 export async function callSyncToBigQuery() {
   const fn = getCallable('syncToBigQuery');
   if (!fn || !isFirebaseLive()) return null;
@@ -56,5 +63,17 @@ export async function testCloudFunctions() {
     throw new Error('Firebase Functions SDK not initialized.');
   }
   const result = await fn({});
+  return result.data;
+}
+
+export async function testTranslation(targetLanguage = 'hi') {
+  const fn = getCallable('translateTextFn');
+  if (!fn || !isFirebaseLive()) {
+    throw new Error('Firebase Functions not available.');
+  }
+  const result = await fn({
+    text: 'Welcome to the Citizen Health Portal',
+    targetLanguage,
+  });
   return result.data;
 }

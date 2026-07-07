@@ -9,7 +9,9 @@ export default function DevToolsModal({
   userRole,
   seedStatus,
   functionsTestStatus,
+  translationTestStatus,
   onTestFunctions,
+  onTestTranslation,
   onSeedDemo,
   onResetDb,
 }) {
@@ -91,6 +93,23 @@ export default function DevToolsModal({
                 }}
               >
                 {functionsTestStatus}
+              </p>
+            )}
+
+            <button type="button" className="btn-secondary" onClick={onTestTranslation} style={{ justifyContent: 'center' }}>
+              <Cloud size={16} />
+              Test Cloud Translation
+            </button>
+            {translationTestStatus && (
+              <p
+                style={{
+                  fontSize: '0.8rem',
+                  color: translationTestStatus.startsWith('Translation OK')
+                    ? 'var(--status-success)'
+                    : 'var(--status-critical)',
+                }}
+              >
+                {translationTestStatus}
               </p>
             )}
 

@@ -13,7 +13,7 @@ import {
 } from './services/firebase';
 import { isAiBackendLive } from './services/gemini';
 import { subscribeToAuth, signOut, seedDemoAccounts } from './services/auth';
-import { testCloudFunctions } from './services/api';
+import { testCloudFunctions, testTranslation } from './services/api';
 
 import AdminDashboard from './components/AdminDashboard';
 import PHCPortal from './components/PHCPortal';
@@ -35,6 +35,7 @@ export default function App() {
   const [showDevTools, setShowDevTools] = useState(false);
   const [seedStatus, setSeedStatus] = useState('');
   const [functionsTestStatus, setFunctionsTestStatus] = useState('');
+  const [translationTestStatus, setTranslationTestStatus] = useState('');
 
   const isLive = isFirebaseLive();
   const hasAiBackend = isAiBackendLive();
@@ -115,6 +116,17 @@ export default function App() {
       setSeedStatus(`Seeded ${result.data.centersSeeded} centers and demo users.`);
     } catch (err) {
       setSeedStatus(err.message || 'Seed failed — check Cloud Functions deploy and try again.');
+    }
+  };
+
+  const handleTestTranslation = async () => {
+    setTranslationTestStatus('Testing Cloud Translation API...');
+    try {
+      const result = await testTranslation('hi');
+      setTranslationTestStatus(`Translation OK (hi): "${result.translatedText}"`);
+    } catch (err) {
+      const code = err.code ? ` (${err.code})` : '';
+      setTranslationTestStatus(`Translation failed${code}: ${err.message}`);
     }
   };
 
@@ -252,7 +264,9 @@ export default function App() {
           userRole={userRole}
           seedStatus={seedStatus}
           functionsTestStatus={functionsTestStatus}
+          translationTestStatus={translationTestStatus}
           onTestFunctions={handleTestFunctions}
+          onTestTranslation={handleTestTranslation}
           onSeedDemo={handleSeedDemo}
           onResetDb={handleResetDb}
         />
