@@ -23,8 +23,48 @@ function CriticalTooltip({ center }) {
   );
 }
 
+function CriticalTooltipOverlay({ map, center }) {
+  const [position, setPosition] = useState(null);
+
+  useEffect(() => {
+    if (!map || !center || !window.google?.maps) return;
+
+    const overlay = new window.google.maps.OverlayView();
+    overlay.onAdd = () => {};
+    overlay.draw = () => {
+      const projection = overlay.getProjection();
+      if (!projection) return;
+      const point = projection.fromLatLngToContainerPixel(center.coordinates);
+      if (point) setPosition({ x: point.x, y: point.y });
+    };
+    overlay.setMap(map);
+
+    const refresh = () => overlay.draw();
+    const listeners = ['idle', 'zoom_changed', 'drag', 'bounds_changed'].map((event) =>
+      map.addListener(event, refresh),
+    );
+
+    return () => {
+      overlay.setMap(null);
+      listeners.forEach((listener) => window.google.maps.event.removeListener(listener));
+    };
+  }, [map, center]);
+
+  if (!position) return null;
+
+  return (
+    <div
+      className="map-critical-tooltip-overlay"
+      style={{ left: position.x, top: position.y }}
+    >
+      <CriticalTooltip center={center} />
+    </div>
+  );
+}
+
 function GoogleMapsView({ centers, redistributions, onCenterClick }) {
   const [selectedCenter, setSelectedCenter] = useState(null);
+  const [mapInstance, setMapInstance] = useState(null);
   const mapRef = useRef(null);
 
   const center = useMemo(() => {
@@ -43,24 +83,12 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
     if (!map || !centers.length || !window.google?.maps) return;
     const bounds = new window.google.maps.LatLngBounds();
     centers.forEach((c) => bounds.extend(c.coordinates));
-
-    // Reserve space above critical markers for persistent tooltips
-    criticalCenters.forEach((c) => {
-      bounds.extend({ lat: c.coordinates.lat + 0.12, lng: c.coordinates.lng });
-    });
-
-    map.fitBounds(bounds, { top: 130, right: 90, bottom: 70, left: 90 });
-
-    window.google.maps.event.addListenerOnce(map, 'idle', () => {
-      const zoom = map.getZoom();
-      if (zoom != null && zoom > 0) {
-        map.setZoom(zoom - 1);
-      }
-    });
-  }, [centers, criticalCenters]);
+    map.fitBounds(bounds, 48);
+  }, [centers]);
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map;
+    setMapInstance(map);
     fitMapToCenters(map);
   }, [fitMapToCenters]);
 
@@ -86,72 +114,65 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
 
   return (
     <LoadScript googleMapsApiKey={MAPS_KEY}>
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={center}
-        zoom={10}
-        mapTypeId="roadmap"
-        onLoad={onMapLoad}
-      >
-        {centers.map((c) => (
-          <Marker
-            key={c.id}
-            position={{ lat: c.coordinates.lat, lng: c.coordinates.lng }}
-            icon={{
-              path: window.google?.maps?.SymbolPath?.CIRCLE ?? 0,
-              scale: c.status === 'critical' ? 12 : 10,
-              fillColor: statusColor(c.status),
-              fillOpacity: 1,
-              strokeColor: c.status === 'critical' ? '#fecaca' : '#ffffff',
-              strokeWeight: c.status === 'critical' ? 3 : 2,
-            }}
-            title={c.name}
-            onClick={() => {
-              setSelectedCenter(c);
-              onCenterClick?.(c);
-            }}
-          />
-        ))}
+      <div className="map-interactive-wrapper">
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={center}
+          zoom={10}
+          mapTypeId="roadmap"
+          onLoad={onMapLoad}
+        >
+          {centers.map((c) => (
+            <Marker
+              key={c.id}
+              position={{ lat: c.coordinates.lat, lng: c.coordinates.lng }}
+              icon={{
+                path: window.google?.maps?.SymbolPath?.CIRCLE ?? 0,
+                scale: c.status === 'critical' ? 12 : 10,
+                fillColor: statusColor(c.status),
+                fillOpacity: 1,
+                strokeColor: c.status === 'critical' ? '#fecaca' : '#ffffff',
+                strokeWeight: c.status === 'critical' ? 3 : 2,
+              }}
+              title={c.name}
+              onClick={() => {
+                setSelectedCenter(c);
+                onCenterClick?.(c);
+              }}
+            />
+          ))}
 
-        {criticalCenters.map((c) => (
-          <InfoWindow
-            key={`critical-${c.id}`}
-            position={{ lat: c.coordinates.lat, lng: c.coordinates.lng }}
-            options={{
-              disableAutoPan: true,
-              ...(window.google?.maps ? { pixelOffset: new window.google.maps.Size(0, -18) } : {}),
-            }}
-          >
-            <CriticalTooltip center={c} />
-          </InfoWindow>
-        ))}
+          {routes.map((r, idx) => (
+            <Polyline
+              key={idx}
+              path={r.path}
+              options={{
+                strokeColor: r.urgency === 'High' ? '#b91c1c' : '#15803d',
+                strokeOpacity: 0.7,
+                strokeWeight: 3,
+                geodesic: true,
+              }}
+            />
+          ))}
 
-        {routes.map((r, idx) => (
-          <Polyline
-            key={idx}
-            path={r.path}
-            options={{
-              strokeColor: r.urgency === 'High' ? '#b91c1c' : '#15803d',
-              strokeOpacity: 0.7,
-              strokeWeight: 3,
-              geodesic: true,
-            }}
-          />
-        ))}
+          {selectedCenter && selectedCenter.status !== 'critical' && (
+            <InfoWindow
+              position={{ lat: selectedCenter.coordinates.lat, lng: selectedCenter.coordinates.lng }}
+              onCloseClick={() => setSelectedCenter(null)}
+            >
+              <div style={{ fontSize: '0.85rem', maxWidth: '200px' }}>
+                <strong>{selectedCenter.name}</strong>
+                <p style={{ margin: '4px 0' }}>{selectedCenter.location}</p>
+                <span>Status: {selectedCenter.status}</span>
+              </div>
+            </InfoWindow>
+          )}
+        </GoogleMap>
 
-        {selectedCenter && selectedCenter.status !== 'critical' && (
-          <InfoWindow
-            position={{ lat: selectedCenter.coordinates.lat, lng: selectedCenter.coordinates.lng }}
-            onCloseClick={() => setSelectedCenter(null)}
-          >
-            <div style={{ fontSize: '0.85rem', maxWidth: '200px' }}>
-              <strong>{selectedCenter.name}</strong>
-              <p style={{ margin: '4px 0' }}>{selectedCenter.location}</p>
-              <span>Status: {selectedCenter.status}</span>
-            </div>
-          </InfoWindow>
-        )}
-      </GoogleMap>
+        {mapInstance && criticalCenters.map((c) => (
+          <CriticalTooltipOverlay key={`critical-${c.id}`} map={mapInstance} center={c} />
+        ))}
+      </div>
     </LoadScript>
   );
 }

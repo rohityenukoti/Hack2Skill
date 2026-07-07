@@ -13,60 +13,68 @@ function computeBounds(centers) {
   const lngs = centers.map((c) => c.coordinates.lng);
   const latSpan = Math.max(...lats) - Math.min(...lats);
   const lngSpan = Math.max(...lngs) - Math.min(...lngs);
-  const hasCritical = centers.some((c) => c.status === 'critical');
-  const latPadding = Math.max(latSpan * 0.3, hasCritical ? 0.1 : 0.05);
-  const lngPadding = Math.max(lngSpan * 0.3, 0.06);
+  const latPadding = Math.max(latSpan * 0.18, 0.04);
+  const lngPadding = Math.max(lngSpan * 0.18, 0.04);
   return {
-    minLat: Math.min(...lats) - latPadding * 0.6,
+    minLat: Math.min(...lats) - latPadding,
     maxLat: Math.max(...lats) + latPadding,
     minLng: Math.min(...lngs) - lngPadding,
     maxLng: Math.max(...lngs) + lngPadding,
   };
 }
 
+function CriticalTooltip({ center }) {
+  return (
+    <div className="map-critical-tooltip">
+      <span className="map-critical-tooltip__badge">URGENT</span>
+      <strong>{center.name}</strong>
+      <p>{center.location}</p>
+      <span className="map-critical-tooltip__status">Immediate intervention required</span>
+    </div>
+  );
+}
+
 export default function CanvasMap({ centers, redistributions, onCenterClick }) {
   const canvasRef = useRef(null);
   const [hoveredCenter, setHoveredCenter] = useState(null);
   const [selectedCenter, setSelectedCenter] = useState(null);
+  const [criticalPositions, setCriticalPositions] = useState([]);
 
   const mapBounds = useMemo(() => computeBounds(centers), [centers]);
+  const criticalCenters = useMemo(
+    () => centers.filter((c) => c.status === 'critical'),
+    [centers],
+  );
 
   const getCanvasCoords = (lat, lng, width, height) => {
-    const padding = 72;
+    const padding = 56;
     const x = padding + ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * (width - 2 * padding);
     const y = height - padding - ((lat - mapBounds.minLat) / (mapBounds.maxLat - mapBounds.minLat)) * (height - 2 * padding);
     return { x, y };
   };
 
-  const drawCriticalTooltip = (ctx, center, coords) => {
-    const lines = [center.name, 'URGENT — Intervention required'];
-    ctx.font = '700 11px Inter';
-    const lineWidths = lines.map((line) => ctx.measureText(line).width);
-    const boxWidth = Math.max(...lineWidths) + 20;
-    const boxHeight = 46;
-    const boxX = coords.x - boxWidth / 2;
-    const boxY = coords.y - 58;
+  const updateCriticalPositions = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width / canvas.width;
+    const scaleY = rect.height / canvas.height;
 
-    ctx.fillStyle = '#7f1d1d';
-    ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
-    ctx.fill();
-
-    ctx.fillStyle = '#fecaca';
-    ctx.beginPath();
-    ctx.moveTo(coords.x - 6, boxY + boxHeight);
-    ctx.lineTo(coords.x + 6, boxY + boxHeight);
-    ctx.lineTo(coords.x, boxY + boxHeight + 8);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.font = '700 11px Inter';
-    ctx.fillText(lines[0], coords.x, boxY + 16);
-    ctx.font = '600 9px Inter';
-    ctx.fillStyle = '#fecaca';
-    ctx.fillText(lines[1], coords.x, boxY + 32);
+    setCriticalPositions(
+      criticalCenters.map((center) => {
+        const coords = getCanvasCoords(
+          center.coordinates.lat,
+          center.coordinates.lng,
+          canvas.width,
+          canvas.height,
+        );
+        return {
+          center,
+          left: coords.x * scaleX,
+          top: coords.y * scaleY,
+        };
+      }),
+    );
   };
 
   useEffect(() => {
@@ -110,16 +118,25 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
       ctx.arc(coords.x, coords.y, center.status === 'critical' ? 9 : 8, 0, 2 * Math.PI);
       ctx.fill();
 
-      if (center.status === 'critical') {
-        drawCriticalTooltip(ctx, center, coords);
-      } else {
+      if (center.status !== 'critical') {
         ctx.fillStyle = '#333';
         ctx.font = '600 11px Inter';
         ctx.textAlign = 'center';
         ctx.fillText(center.name, coords.x, coords.y - 14);
       }
     });
-  }, [centers, redistributions, hoveredCenter, selectedCenter, mapBounds]);
+
+    updateCriticalPositions();
+  }, [centers, redistributions, hoveredCenter, selectedCenter, mapBounds, criticalCenters]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    const resizeObserver = new ResizeObserver(() => updateCriticalPositions());
+    resizeObserver.observe(canvas);
+    return () => resizeObserver.disconnect();
+  }, [centers, mapBounds, criticalCenters]);
 
   const handleMouseClick = (e) => {
     const canvas = canvasRef.current;
@@ -142,7 +159,7 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
   };
 
   return (
-    <div className="map-container-wrapper" style={{ height: '100%' }}>
+    <div className="map-container-wrapper map-interactive-wrapper" style={{ height: '100%' }}>
       <div className="map-placeholder" style={{ flexGrow: 1, position: 'relative' }}>
         <canvas
           ref={canvasRef}
@@ -151,6 +168,15 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
           style={{ width: '100%', height: '100%', cursor: 'pointer', display: 'block' }}
           onClick={handleMouseClick}
         />
+        {criticalPositions.map(({ center, left, top }) => (
+          <div
+            key={`critical-${center.id}`}
+            className="map-critical-tooltip-overlay"
+            style={{ left, top }}
+          >
+            <CriticalTooltip center={center} />
+          </div>
+        ))}
         {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
           <div style={{ position: 'absolute', top: 8, right: 8, background: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: '0.7rem', border: '1px solid var(--border-color)' }}>
             Canvas fallback — set VITE_GOOGLE_MAPS_API_KEY for Google Maps

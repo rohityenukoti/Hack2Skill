@@ -318,7 +318,25 @@ h1, h2, h3, h4, h5, h6 {
   background: #f1f5f9;
   border: 1px solid var(--border-color);
   position: relative;
+  overflow: visible;
+}
+
+.map-interactive-wrapper {
+  position: relative;
+  height: 300px;
+  overflow: visible;
+}
+
+.map-interactive-wrapper > div:first-child {
+  border-radius: var(--radius-md);
   overflow: hidden;
+}
+
+.map-critical-tooltip-overlay {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 14px));
+  z-index: 5;
+  pointer-events: none;
 }
 
 .map-canvas-mock {
@@ -340,6 +358,7 @@ h1, h2, h3, h4, h5, h6 {
 .map-card {
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 .map-critical-tooltip {
