@@ -34,6 +34,25 @@ function triggerLocalUpdate() {
   localListeners.forEach((listener) => listener());
 }
 
+function mirrorCentersToLocal(centers) {
+  localStorage.setItem(LOCAL_CENTERS_KEY, JSON.stringify(centers));
+}
+
+function mirrorInventoryToLocal(centerId, items) {
+  const allInv = JSON.parse(localStorage.getItem(LOCAL_INVENTORY_KEY) || '{}');
+  allInv[centerId] = items;
+  localStorage.setItem(LOCAL_INVENTORY_KEY, JSON.stringify(allInv));
+}
+
+function mirrorCenterPatchToLocal(centerId, patch) {
+  const centers = JSON.parse(localStorage.getItem(LOCAL_CENTERS_KEY) || '[]');
+  const index = centers.findIndex((c) => c.id === centerId);
+  if (index !== -1) {
+    centers[index] = { ...centers[index], ...patch };
+    mirrorCentersToLocal(centers);
+  }
+}
+
 function withAudit(updates, source = 'portal') {
   return {
     ...updates,
@@ -73,7 +92,9 @@ export function subscribeToCenters(onUpdate) {
         snapshot.forEach((d) => centers.push({ id: d.id, ...d.data() }));
         onUpdate(centers);
       },
-      () => subscribeToCentersLocal(onUpdate)
+      (error) => {
+        console.error('subscribeToCenters failed:', error);
+      }
     );
   }
   return subscribeToCentersLocal(onUpdate);
@@ -97,8 +118,11 @@ export function subscribeToInventory(centerId, onUpdate) {
         const items = [];
         snapshot.forEach((d) => items.push(d.data()));
         onUpdate(items);
+        mirrorInventoryToLocal(centerId, items);
       },
-      () => subscribeToInventoryLocal(centerId, onUpdate)
+      (error) => {
+        console.error(`subscribeToInventory(${centerId}) failed:`, error);
+      }
     );
   }
   return subscribeToInventoryLocal(centerId, onUpdate);
@@ -132,6 +156,7 @@ export async function updateCenterDetails(centerId, updates, source = 'portal') 
   if (useRealFirebase && db) {
     try {
       await updateDoc(doc(db, 'centers', centerId), payload);
+      mirrorCenterPatchToLocal(centerId, payload);
       return true;
     } catch (e) {
       console.error('Firestore updateCenterDetails failed:', e);
@@ -156,6 +181,13 @@ export async function updateInventoryItem(centerId, itemName, updates, source = 
     try {
       const cleanItemName = itemName.replace(/[^a-zA-Z0-9]/g, '_');
       await updateDoc(doc(db, `centers/${centerId}/inventory`, cleanItemName), payload);
+      const allInv = JSON.parse(localStorage.getItem(LOCAL_INVENTORY_KEY) || '{}');
+      const centerInv = allInv[centerId] || [];
+      const invIndex = centerInv.findIndex((i) => i.name === itemName);
+      if (invIndex !== -1) {
+        centerInv[invIndex] = { ...centerInv[invIndex], ...payload };
+        mirrorInventoryToLocal(centerId, centerInv);
+      }
       await evaluateCenterInventoryStatus(centerId);
       return true;
     } catch (e) {
@@ -192,10 +224,12 @@ async function evaluateCenterInventoryStatus(centerId) {
     let status = 'normal';
     if (criticalCount > 0) status = 'critical';
     else if (warningCount > 1) status = 'warning';
-    await updateDoc(doc(db, 'centers', centerId), {
+    const statusPatch = {
       status,
       lastUpdated: new Date().toISOString(),
-    });
+    };
+    await updateDoc(doc(db, 'centers', centerId), statusPatch);
+    mirrorCenterPatchToLocal(centerId, statusPatch);
   } catch (e) {
     console.error('evaluateCenterInventoryStatus failed:', e);
   }

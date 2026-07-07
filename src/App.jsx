@@ -57,15 +57,23 @@ export default function App() {
     return unsubAuth;
   }, []);
 
+  // Re-subscribe when auth changes so Firestore rules apply to the correct role.
+  // Without this, logout errors poison state with stale localStorage and the
+  // dead listener never picks up Firestore changes on the next login.
   useEffect(() => {
+    if (authLoading) return undefined;
+
+    if (!authUser) {
+      setCenters([]);
+      return undefined;
+    }
+
     const unsubscribe = subscribeToCenters((centersData) => {
       setCenters(centersData);
-      if (centersData.length > 0 && !activeCenterId) {
-        setActiveCenterId(centersData[0].id);
-      }
+      setActiveCenterId((prev) => prev || centersData[0]?.id || '');
     });
     return () => unsubscribe();
-  }, []);
+  }, [authUser, authLoading]);
 
   const mainContentRef = useRef(null);
 
