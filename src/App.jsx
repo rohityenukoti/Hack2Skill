@@ -104,7 +104,18 @@ export default function App() {
 
   const handleOpenLogin = (role) => setLoginModalRole(role);
 
-  const handleLoginSuccess = () => setLoginModalRole(null);
+  const handleLoginSuccess = (role, user) => {
+    setLoginModalRole(null);
+    if (user?.role) {
+      setAuthUser(user);
+      setCurrentView('dashboard');
+      if (user.role === 'admin') setActiveTab('dashboard');
+      else if (user.role === 'healthcenter') {
+        setActiveTab('portal');
+        if (user.centerId) setActiveCenterId(user.centerId);
+      } else if (user.role === 'citizen') setActiveTab('citizen');
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();

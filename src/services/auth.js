@@ -18,6 +18,7 @@ const DEMO_USERS = {
 let mockAuthState = null;
 const mockListeners = new Set();
 let callableAuthPromise = null;
+const liveAuthListeners = new Set();
 
 function notifyMockListeners() {
   mockListeners.forEach((cb) => cb(mockAuthState));
@@ -50,24 +51,36 @@ async function fetchUserProfileWithRetry(uid) {
   return await fetchUserProfile(uid);
 }
 
+async function buildAuthUser(firebaseUser) {
+  if (!firebaseUser) return null;
+  const profile = await fetchUserProfileWithRetry(firebaseUser.uid);
+  return {
+    uid: firebaseUser.uid,
+    email: firebaseUser.email,
+    role: profile?.role ?? null,
+    centerId: profile?.centerId ?? null,
+    districtId: profile?.districtId ?? null,
+    displayName: profile?.displayName ?? firebaseUser.displayName,
+  };
+}
+
+async function notifyAuthListeners(firebaseUser) {
+  const authUser = firebaseUser ? await buildAuthUser(firebaseUser) : null;
+  liveAuthListeners.forEach((cb) => cb(authUser));
+  return authUser;
+}
+
 export function subscribeToAuth(callback) {
   const auth = getFirebaseAuth();
   if (auth && isFirebaseLive()) {
-    return onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        callback(null);
-        return;
-      }
-      const profile = await fetchUserProfileWithRetry(user.uid);
-      callback({
-        uid: user.uid,
-        email: user.email,
-        role: profile?.role ?? null,
-        centerId: profile?.centerId ?? null,
-        districtId: profile?.districtId ?? null,
-        displayName: profile?.displayName ?? user.displayName,
-      });
+    liveAuthListeners.add(callback);
+    const unsub = onAuthStateChanged(auth, (user) => {
+      notifyAuthListeners(user);
     });
+    return () => {
+      unsub();
+      liveAuthListeners.delete(callback);
+    };
   }
 
   callback(mockAuthState);
@@ -136,13 +149,20 @@ export async function signInCitizen() {
     notifyMockListeners();
     return mockAuthState;
   }
-  const cred = await signInAnonymously(auth);
+
+  // Reuse anonymous session created for homepage translation when present.
+  if (!auth.currentUser) {
+    await signInAnonymously(auth);
+  }
+
   if (functions) {
     const provision = httpsCallable(functions, 'provisionCitizenProfile');
     await provision();
   }
-  const profile = await fetchUserProfile(cred.user.uid);
-  return { uid: cred.user.uid, email: cred.user.email, role: 'citizen', ...profile };
+
+  // onAuthStateChanged does not re-fire when reusing an existing anonymous user,
+  // so push the updated profile to listeners explicitly.
+  return notifyAuthListeners(auth.currentUser);
 }
 
 export async function signOut() {
