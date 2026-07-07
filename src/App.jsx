@@ -22,6 +22,7 @@ import HomePage from './components/HomePage';
 import LoginModal from './components/LoginModal';
 import CitizenPortal from './components/CitizenPortal';
 import DevToolsModal from './components/DevToolsModal';
+import { LANGUAGE_OPTIONS } from './constants/languages';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -36,6 +37,8 @@ export default function App() {
   const [seedStatus, setSeedStatus] = useState('');
   const [functionsTestStatus, setFunctionsTestStatus] = useState('');
   const [translationTestStatus, setTranslationTestStatus] = useState('');
+  const [citizenLanguage, setCitizenLanguage] = useState('en');
+  const [citizenIsTranslating, setCitizenIsTranslating] = useState(false);
 
   const isLive = isFirebaseLive();
   const hasAiBackend = isAiBackendLive();
@@ -196,6 +199,24 @@ export default function App() {
           </div>
           <div className="gov-top-bar-right">
             <a href="#main-content" className="gov-top-bar-link">Skip to Main Content</a>
+            {userRole === 'citizen' && (
+              <div className="gov-accessibility-controls">
+                <select
+                  className="gov-language-select"
+                  value={citizenLanguage}
+                  onChange={(e) => setCitizenLanguage(e.target.value)}
+                  aria-label="Select language"
+                  disabled={citizenIsTranslating}
+                >
+                  {LANGUAGE_OPTIONS.map((opt) => (
+                    <option key={opt.code} value={opt.code}>{opt.label}</option>
+                  ))}
+                </select>
+                {citizenIsTranslating && (
+                  <span className="gov-translating-label">Translating...</span>
+                )}
+              </div>
+            )}
             {(userRole === 'admin' || userRole === 'healthcenter') && (
               <button
                 type="button"
@@ -275,7 +296,13 @@ export default function App() {
           {activeTab === 'voice' && userRole === 'healthcenter' && (
             <VoiceAssistant centers={centers} activeCenterId={activeCenterId || authUser?.centerId} />
           )}
-          {activeTab === 'citizen' && userRole === 'citizen' && <CitizenPortal centers={centers} />}
+          {activeTab === 'citizen' && userRole === 'citizen' && (
+            <CitizenPortal
+              centers={centers}
+              language={citizenLanguage}
+              onTranslatingChange={setCitizenIsTranslating}
+            />
+          )}
         </main>
 
         <DevToolsModal

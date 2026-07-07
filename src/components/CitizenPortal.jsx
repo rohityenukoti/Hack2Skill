@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { saveFeedback, getFeedbackForCenter } from '../services/firebase';
 import { translateCitizenPortalContent } from '../services/translation';
-import { LANGUAGE_OPTIONS } from '../constants/languages';
 
 const UI_STRINGS = {
   pageTitle: 'Citizen Health Portal',
@@ -111,7 +110,7 @@ const HEALTH_SCHEMES = [
   }
 ];
 
-export default function CitizenPortal({ centers }) {
+export default function CitizenPortal({ centers, language = 'en', onTranslatingChange }) {
   const [activeTab, setActiveTab] = useState('find');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -125,11 +124,9 @@ export default function CitizenPortal({ centers }) {
   const [feedbackCategories, setFeedbackCategories] = useState([]);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [feedbackName, setFeedbackName] = useState('');
-  const [language, setLanguage] = useState('en');
   const [ui, setUi] = useState(UI_STRINGS);
   const [translatedSchemes, setTranslatedSchemes] = useState(HEALTH_SCHEMES);
   const [translatedCategories, setTranslatedCategories] = useState(FEEDBACK_CATEGORIES);
-  const [isTranslating, setIsTranslating] = useState(false);
 
   useEffect(() => {
     document.getElementById('main-content')?.scrollTo(0, 0);
@@ -140,13 +137,13 @@ export default function CitizenPortal({ centers }) {
       setUi(UI_STRINGS);
       setTranslatedSchemes(HEALTH_SCHEMES);
       setTranslatedCategories(FEEDBACK_CATEGORIES);
-      setIsTranslating(false);
+      onTranslatingChange?.(false);
       return;
     }
 
     let cancelled = false;
     (async () => {
-      setIsTranslating(true);
+      onTranslatingChange?.(true);
       try {
         const result = await translateCitizenPortalContent(
           {
@@ -170,12 +167,12 @@ export default function CitizenPortal({ centers }) {
           setTranslatedCategories(FEEDBACK_CATEGORIES);
         }
       } finally {
-        if (!cancelled) setIsTranslating(false);
+        if (!cancelled) onTranslatingChange?.(false);
       }
     })();
 
     return () => { cancelled = true; };
-  }, [language]);
+  }, [language, onTranslatingChange]);
 
   // Filter and search centers
   const filteredCenters = centers.filter(center => {
@@ -259,7 +256,7 @@ export default function CitizenPortal({ centers }) {
       </div>
 
       {/* Tab Switcher */}
-      <div className="citizen-tabs" style={{ alignItems: 'center' }}>
+      <div className="citizen-tabs">
         <button
           className={`citizen-tab ${activeTab === 'find' ? 'active' : ''}`}
           onClick={() => setActiveTab('find')}
@@ -281,22 +278,6 @@ export default function CitizenPortal({ centers }) {
           <Heart size={16} />
           {ui.tabSchemes}
         </button>
-        <select
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          style={{ marginLeft: 'auto', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
-          aria-label="Select language"
-          disabled={isTranslating}
-        >
-          {LANGUAGE_OPTIONS.map((opt) => (
-            <option key={opt.code} value={opt.code}>{opt.label}</option>
-          ))}
-        </select>
-        {isTranslating && (
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-            {ui.translating}
-          </span>
-        )}
       </div>
 
       {/* Tab: Find Centers */}
