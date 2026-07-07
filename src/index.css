@@ -2208,7 +2208,6 @@ tr:hover td {
 }
 
 .citizen-center-card {
-  cursor: pointer;
   position: relative;
   padding: 0;
   overflow: hidden;

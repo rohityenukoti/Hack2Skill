@@ -114,8 +114,6 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
   const [activeTab, setActiveTab] = useState('find');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [selectedCenter, setSelectedCenter] = useState(null);
-  
   // Feedback state
   const [feedbackCenter, setFeedbackCenter] = useState('');
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -313,15 +311,11 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
           <div className="citizen-centers-grid">
             {filteredCenters.map(center => {
               const bedsAvailable = center.beds.total - center.beds.occupied;
-              const availableTests = Object.entries(center.diagnosticTests || {})
-                .filter(([, available]) => available)
-                .map(([name]) => name);
 
               return (
                 <div
                   key={center.id}
-                  className={`citizen-center-card glass-card ${selectedCenter?.id === center.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedCenter(selectedCenter?.id === center.id ? null : center)}
+                  className="citizen-center-card glass-card"
                 >
                   {/* Status indicator */}
                   <div className="citizen-center-status-bar" style={{ background: getStatusColor(center.status) }} />
@@ -371,31 +365,28 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
                     </div>
                   </div>
 
-                  {/* Expanded Details */}
-                  {selectedCenter?.id === center.id && (
-                    <div className="citizen-center-expanded fade-in">
-                      <div className="citizen-center-divider" />
-                      <h4 className="citizen-center-section-title">{ui.diagnosticTests}</h4>
-                      <div className="citizen-tests-grid">
-                        {Object.entries(center.diagnosticTests || {}).map(([test, available]) => (
-                          <div key={test} className={`citizen-test-badge ${available ? 'available' : 'unavailable'}`}>
-                            {available ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
-                            {test}
-                          </div>
-                        ))}
-                      </div>
-                      <div className="citizen-center-actions">
-                        <button className="btn-primary citizen-action-btn" onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveTab('feedback');
-                          setFeedbackCenter(center.id);
-                        }}>
-                          <Star size={14} />
-                          {ui.rateCenter}
-                        </button>
-                      </div>
+                  {/* Diagnostic Tests */}
+                  <div className="citizen-center-expanded">
+                    <div className="citizen-center-divider" />
+                    <h4 className="citizen-center-section-title">{ui.diagnosticTests}</h4>
+                    <div className="citizen-tests-grid">
+                      {Object.entries(center.diagnosticTests || {}).map(([test, available]) => (
+                        <div key={test} className={`citizen-test-badge ${available ? 'available' : 'unavailable'}`}>
+                          {available ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
+                          {test}
+                        </div>
+                      ))}
                     </div>
-                  )}
+                    <div className="citizen-center-actions">
+                      <button className="btn-primary citizen-action-btn" onClick={() => {
+                        setActiveTab('feedback');
+                        setFeedbackCenter(center.id);
+                      }}>
+                        <Star size={14} />
+                        {ui.rateCenter}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
             })}
