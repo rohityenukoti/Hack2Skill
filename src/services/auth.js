@@ -29,6 +29,26 @@ async function fetchUserProfile(uid) {
   return snap.exists() ? snap.data() : null;
 }
 
+async function sleep(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchUserProfileWithRetry(uid) {
+  // Citizen sign-in provisions the profile via a Cloud Function, which can race
+  // the initial auth state change. Retry briefly to avoid "role: null" sticky state.
+  const delaysMs = [0, 150, 300, 600, 1200];
+  for (const d of delaysMs) {
+    if (d) await sleep(d);
+    try {
+      const profile = await fetchUserProfile(uid);
+      if (profile?.role) return profile;
+    } catch {
+      // ignore transient read errors; caller will fall back to null
+    }
+  }
+  return await fetchUserProfile(uid);
+}
+
 export function subscribeToAuth(callback) {
   const auth = getFirebaseAuth();
   if (auth && isFirebaseLive()) {
@@ -37,7 +57,7 @@ export function subscribeToAuth(callback) {
         callback(null);
         return;
       }
-      const profile = await fetchUserProfile(user.uid);
+      const profile = await fetchUserProfileWithRetry(user.uid);
       callback({
         uid: user.uid,
         email: user.email,

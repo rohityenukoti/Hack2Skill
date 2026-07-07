@@ -62,7 +62,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    seedFirestoreIfEmpty();
     const unsubscribe = subscribeToCenters((centersData) => {
       setCenters(centersData);
       if (centersData.length > 0 && !activeCenterId) {
@@ -71,6 +70,17 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  const didSeedRef = useRef(false);
+  useEffect(() => {
+    // Seeding writes require elevated permissions; avoid running it on every app load,
+    // and never before auth/profile is established.
+    if (!isLive) return;
+    if (didSeedRef.current) return;
+    if (userRole !== 'admin') return;
+    didSeedRef.current = true;
+    seedFirestoreIfEmpty();
+  }, [isLive, userRole]);
 
   useEffect(() => {
     if (authUser?.centerId) {
