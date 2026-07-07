@@ -325,7 +325,116 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .map-card {
+  margin-bottom: 0;
+}
+
+.map-transfers-grid {
   margin-bottom: 1.5rem;
+}
+
+.transfers-panel {
+  min-height: 0;
+}
+
+.transfer-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.transfer-item-card {
+  padding: 0.75rem 0.875rem;
+}
+
+.transfer-route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.transfer-distance {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background: rgba(15, 76, 129, 0.06);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+/* PHC-grouped alert cards */
+.phc-alerts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.phc-alert-card {
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--status-warning);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 0.75rem;
+  background: #fffbeb;
+}
+
+.phc-alert-card.critical-insight {
+  border-left-color: var(--status-critical);
+  background: #fef2f2;
+}
+
+.phc-alert-card.warning-insight {
+  border-left-color: var(--status-warning);
+  background: #fffbeb;
+}
+
+.phc-alert-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.phc-alert-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: var(--font-family-display);
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.phc-alert-issues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.phc-alert-issue {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  padding-left: 0.65rem;
+  position: relative;
+}
+
+.phc-alert-issue::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--status-warning);
+  font-weight: 700;
+}
+
+.phc-alert-issue--critical::before {
+  color: var(--status-critical);
+}
+
+.phc-alert-issue--critical {
+  color: var(--status-critical);
+  font-weight: 600;
 }
 
 /* AI Insights */

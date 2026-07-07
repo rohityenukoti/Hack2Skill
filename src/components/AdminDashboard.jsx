@@ -1,9 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sparkles, RefreshCw, AlertOctagon, TrendingUp, AlertTriangle, ArrowRightLeft, Users, ShieldAlert, Check, Activity, Database } from 'lucide-react';
 import InteractiveMap from './InteractiveMap';
 import { generateForecastingAndRedistribution } from '../services/gemini';
 import { subscribeToInventory, updateInventoryItem } from '../services/firebase';
 import { callSyncToBigQuery, isCloudFunctionsAvailable } from '../services/api';
+
+function groupAlertsByCenter(alerts, centers) {
+  const grouped = {};
+
+  alerts.forEach((alert) => {
+    const centerId = alert.centerId;
+    if (!grouped[centerId]) {
+      const center = centers.find((c) => c.id === centerId);
+      grouped[centerId] = {
+        centerId,
+        centerName: center?.name || 'Unknown Facility',
+        centerType: center?.type || '',
+        severity: 'warning',
+        issues: [],
+      };
+    }
+    if (alert.type === 'critical') grouped[centerId].severity = 'critical';
+    grouped[centerId].issues.push({
+      type: alert.type,
+      summary: alert.title,
+      detail: alert.message,
+    });
+  });
+
+  return Object.values(grouped).sort((a, b) => {
+    if (a.severity !== b.severity) return a.severity === 'critical' ? -1 : 1;
+    return a.centerName.localeCompare(b.centerName);
+  });
+}
 
 export default function AdminDashboard({ centers }) {
   const [inventories, setInventories] = useState({});
@@ -120,6 +149,78 @@ export default function AdminDashboard({ centers }) {
     }
   };
 
+  const groupedAlerts = useMemo(
+    () => (aiData?.alerts ? groupAlertsByCenter(aiData.alerts, centers) : []),
+    [aiData?.alerts, centers]
+  );
+
+  const renderTransfersPanel = () => {
+    if (isLoadingAI) {
+      return (
+        <div className="ai-pill-loading">
+          <div className="pulse-loader" />
+          <p>Computing redistribution paths...</p>
+        </div>
+      );
+    }
+
+    if (!aiData) {
+      return (
+        <div className="insight-empty-state">
+          <Sparkles size={20} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
+          <p>Run Gemini AI Audit to see transfer suggestions.</p>
+        </div>
+      );
+    }
+
+    if (!aiData.redistributions?.length) {
+      return (
+        <div className="insight-empty-state">
+          No redistribution actions needed. Supplies are balanced.
+        </div>
+      );
+    }
+
+    return (
+      <div className="transfer-items-list">
+        {aiData.redistributions.map((redist, idx) => (
+          <div key={idx} className="insight-card success-insight transfer-item-card">
+            <div className="insight-card-header">
+              <span className="insight-card-label">{redist.itemName}</span>
+              <span className={`badge ${redist.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
+                {redist.urgency}
+              </span>
+            </div>
+            <p className="insight-card-title">
+              {redist.quantity} units
+            </p>
+            <p className="insight-text transfer-route">
+              <strong>{redist.fromName}</strong> ➔ <strong>{redist.toName}</strong>
+              <span className="transfer-distance">{redist.distanceEstimate}</span>
+            </p>
+            <button
+              className="insight-action-btn"
+              disabled={executingTransferId === idx}
+              onClick={() => handleExecuteRedistribution(idx, redist)}
+            >
+              {executingTransferId === idx ? (
+                <>
+                  <RefreshCw className="spin" size={10} />
+                  Transferring...
+                </>
+              ) : (
+                <>
+                  <Check size={10} />
+                  Execute
+                </>
+              )}
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="fade-in">
       {/* Top Header */}
@@ -220,20 +321,33 @@ export default function AdminDashboard({ centers }) {
         </div>
       </div>
 
-      {/* District Map */}
-      <div className="glass-card map-card">
-        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Activity size={20} color="var(--primary)" />
-          District Geospatial Health Map
-        </h3>
-        <InteractiveMap 
-          centers={centers} 
-          redistributions={aiData?.redistributions || []}
-          onCenterClick={(c) => setSelectedCenter(c)}
-        />
+      {/* Map + Transfer Suggestions side by side */}
+      <div className="dashboard-grid map-transfers-grid">
+        <div className="glass-card map-card">
+          <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Activity size={20} color="var(--primary)" />
+            District Geospatial Health Map
+          </h3>
+          <InteractiveMap 
+            centers={centers} 
+            redistributions={aiData?.redistributions || []}
+            onCenterClick={(c) => setSelectedCenter(c)}
+          />
+        </div>
+
+        <div className="glass-card insight-section-box section-transfers transfers-panel">
+          <div className="insight-section-header">
+            <ArrowRightLeft size={16} />
+            <span>Smart Transfer Suggestions</span>
+            {aiData?.redistributions?.length > 0 && (
+              <span className="insight-section-count">{aiData.redistributions.length}</span>
+            )}
+          </div>
+          {renderTransfersPanel()}
+        </div>
       </div>
 
-      {/* Gemini AI Insights — section boxes + items in grids */}
+      {/* Gemini AI Insights — alerts & intervention briefs */}
       <div className="ai-insights-wrapper">
         <div className="ai-header">
           <h3 className="ai-title">
@@ -249,29 +363,38 @@ export default function AdminDashboard({ centers }) {
           <div className="glass-card insight-section-box">
             <div className="ai-pill-loading">
               <div className="pulse-loader" />
-              <p>Generating logistics forecasts and computing redistribution paths...</p>
+              <p>Generating logistics forecasts...</p>
             </div>
           </div>
         ) : aiData ? (
           <div className="ai-insights-grid">
-            {/* Urgent Flags */}
-            {aiData.alerts && aiData.alerts.length > 0 && (
+            {/* Urgent Flags — grouped by PHC */}
+            {groupedAlerts.length > 0 && (
               <div className="glass-card insight-section-box section-alerts">
                 <div className="insight-section-header">
                   <AlertTriangle size={16} />
-                  <span>Urgent Flags</span>
-                  <span className="insight-section-count">{aiData.alerts.length}</span>
+                  <span>Low Stock & Urgent Flags</span>
+                  <span className="insight-section-count">{groupedAlerts.length} PHCs</span>
                 </div>
-                <div className="insight-items-grid">
-                  {aiData.alerts.map((alert, idx) => (
-                    <div key={idx} className={`insight-card ${alert.type === 'critical' ? 'critical-insight' : 'warning-insight'}`}>
-                      <div className="insight-card-header">
-                        <span>{alert.title}</span>
-                        <span className="insight-card-meta">
-                          {centers.find(c => c.id === alert.centerId)?.name || "Facility Alert"}
+                <div className="phc-alerts-grid">
+                  {groupedAlerts.map((group) => (
+                    <div
+                      key={group.centerId}
+                      className={`phc-alert-card ${group.severity === 'critical' ? 'critical-insight' : 'warning-insight'}`}
+                    >
+                      <div className="phc-alert-header">
+                        <span className="phc-alert-name">{group.centerName}</span>
+                        <span className={`badge ${group.severity === 'critical' ? 'critical' : 'warning'}`} style={{ fontSize: '0.62rem' }}>
+                          {group.issues.length} issue{group.issues.length !== 1 ? 's' : ''}
                         </span>
                       </div>
-                      <p className="insight-text">{alert.message}</p>
+                      <ul className="phc-alert-issues">
+                        {group.issues.map((issue, idx) => (
+                          <li key={idx} className={`phc-alert-issue phc-alert-issue--${issue.type}`}>
+                            {issue.summary}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   ))}
                 </div>
@@ -299,61 +422,6 @@ export default function AdminDashboard({ centers }) {
                 </div>
               </div>
             )}
-
-            {/* Smart Transfers */}
-            <div className="glass-card insight-section-box section-transfers">
-              <div className="insight-section-header">
-                <ArrowRightLeft size={16} />
-                <span>Smart Transfer Suggestions</span>
-                {aiData.redistributions?.length > 0 && (
-                  <span className="insight-section-count">{aiData.redistributions.length}</span>
-                )}
-              </div>
-              <div className="insight-items-grid">
-                {aiData.redistributions && aiData.redistributions.length > 0 ? (
-                  aiData.redistributions.map((redist, idx) => (
-                    <div key={idx} className="insight-card success-insight">
-                      <div className="insight-card-header">
-                        <span className="insight-card-label">Transfer Recommendation</span>
-                        <span className={`badge ${redist.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
-                          {redist.urgency} Urgency
-                        </span>
-                      </div>
-                      <p className="insight-card-title">
-                        Move {redist.quantity} units of {redist.itemName}
-                      </p>
-                      <p className="insight-text">
-                        From <strong>{redist.fromName}</strong> ➔ To <strong>{redist.toName}</strong> ({redist.distanceEstimate})
-                      </p>
-                      <p className="insight-text insight-quote">
-                        "{redist.reason}"
-                      </p>
-                      <button
-                        className="insight-action-btn"
-                        disabled={executingTransferId === idx}
-                        onClick={() => handleExecuteRedistribution(idx, redist)}
-                      >
-                        {executingTransferId === idx ? (
-                          <>
-                            <RefreshCw className="spin" size={10} />
-                            Transferring...
-                          </>
-                        ) : (
-                          <>
-                            <Check size={10} />
-                            Execute Redistribution
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="insight-empty-state insight-empty-state--span">
-                    No redistribution actions needed. Supplies are balanced.
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         ) : (
           <div className="glass-card insight-section-box">
