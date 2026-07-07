@@ -2794,6 +2794,18 @@ tr:hover td {
    =================================================================== */
 
 @media (max-width: 768px) {
+  .gov-top-bar-left {
+    display: none;
+  }
+
+  .gov-top-bar-inner {
+    justify-content: flex-end;
+  }
+
+  .gov-top-bar {
+    padding: 0.4rem 1rem;
+  }
+
   .home-nav-actions {
     display: none;
   }
