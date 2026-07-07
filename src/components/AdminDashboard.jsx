@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Sparkles, RefreshCw, AlertOctagon, TrendingUp, AlertTriangle, ArrowRightLeft, Users, ShieldAlert, Check, Activity, Database } from 'lucide-react';
 import InteractiveMap from './InteractiveMap';
 import { generateForecastingAndRedistribution } from '../services/gemini';
@@ -41,6 +41,7 @@ export default function AdminDashboard({ centers }) {
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [executingTransferId, setExecutingTransferId] = useState(null);
   const [bqSyncStatus, setBqSyncStatus] = useState('');
+  const hasAutoRunAudit = useRef(false);
 
   // Subscribe to all center inventories
   useEffect(() => {
@@ -80,7 +81,7 @@ export default function AdminDashboard({ centers }) {
     });
   });
 
-  const handleRunAI = async () => {
+  const handleRunAI = useCallback(async () => {
     if (isLoadingAI) return;
     setIsLoadingAI(true);
     try {
@@ -91,7 +92,15 @@ export default function AdminDashboard({ centers }) {
     } finally {
       setIsLoadingAI(false);
     }
-  };
+  }, [centers, inventories, isLoadingAI]);
+
+  useEffect(() => {
+    if (hasAutoRunAudit.current || centers.length === 0) return;
+    if (Object.keys(inventories).length < centers.length) return;
+
+    hasAutoRunAudit.current = true;
+    handleRunAI();
+  }, [centers, inventories, handleRunAI]);
 
   const handleExecuteRedistribution = async (idx, transfer) => {
     setExecutingTransferId(idx);
