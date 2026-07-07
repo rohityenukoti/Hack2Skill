@@ -64,13 +64,6 @@ export default function AdminDashboard({ centers }) {
     }
   };
 
-  // Run initial AI analysis on load or when centers list changes
-  useEffect(() => {
-    if (centers.length > 0 && Object.keys(inventories).length === centers.length) {
-      handleRunAI();
-    }
-  }, [centers, Object.keys(inventories).length]);
-
   const handleExecuteRedistribution = async (idx, transfer) => {
     setExecutingTransferId(idx);
     try {
