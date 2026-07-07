@@ -21,9 +21,9 @@ import { LANGUAGE_OPTIONS } from '../constants/languages';
 import { translateHomePageContent } from '../services/translation';
 
 const UI_STRINGS = {
-  topBarTitle: 'राष्ट्रीय स्वास्थ्य मिशन | National Health Mission',
+  topBarTitle: 'Chikitsalay Setu | चिकित्सालय सेतु',
   skipToMain: 'Skip to Main Content',
-  logoSub: 'चिकित्सालय सेतु (Government of India)',
+  logoSub: 'AI-Powered PHC/CHC Health Operations',
   navFeatures: 'Features',
   navAnnouncements: 'Announcements',
   navLogin: 'Login',

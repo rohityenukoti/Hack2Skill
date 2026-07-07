@@ -204,7 +204,7 @@ export default function App() {
       <div className="gov-top-bar">
         <div className="gov-top-bar-inner">
           <div className="gov-top-bar-left">
-            <span>राष्ट्रीय स्वास्थ्य मिशन | National Health Mission</span>
+            <span>Chikitsalay Setu | चिकित्सालय सेतु</span>
           </div>
           <div className="gov-top-bar-right">
             <a href="#main-content" className="gov-top-bar-link">Skip to Main Content</a>
@@ -251,12 +251,11 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '2.5rem' }}>🏛️</span>
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>भारत सरकार | GOVERNMENT OF INDIA</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2 }}>
                 चिकित्सालय सेतु | Chikitsalay Setu
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                Ministry of Health & Family Welfare • AI-Powered Health Center Supply Network
+                AI-Powered Health Center Supply Network
               </div>
             </div>
           </div>
