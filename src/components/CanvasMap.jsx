@@ -7,6 +7,8 @@ const DEFAULT_BOUNDS = {
   maxLng: 75.28,
 };
 
+const CRITICAL_TOOLTIP_DELAY_MS = 2000;
+
 function computeBounds(centers) {
   if (!centers.length) return DEFAULT_BOUNDS;
   const lats = centers.map((c) => c.coordinates.lat);
@@ -39,12 +41,21 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
   const [hoveredCenter, setHoveredCenter] = useState(null);
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [criticalPositions, setCriticalPositions] = useState([]);
+  const [openCriticalIds, setOpenCriticalIds] = useState(() => new Set());
 
   const mapBounds = useMemo(() => computeBounds(centers), [centers]);
   const criticalCenters = useMemo(
     () => centers.filter((c) => c.status === 'critical'),
     [centers],
   );
+
+  useEffect(() => {
+    setOpenCriticalIds(new Set());
+    const timer = window.setTimeout(() => {
+      setOpenCriticalIds(new Set(criticalCenters.map((c) => c.id)));
+    }, CRITICAL_TOOLTIP_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [criticalCenters]);
 
   const getCanvasCoords = (lat, lng, width, height) => {
     const padding = 56;
@@ -107,9 +118,9 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
       else if (center.status === 'critical') color = '#b91c1c';
 
       if (center.status === 'critical') {
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
         ctx.beginPath();
-        ctx.arc(coords.x, coords.y, 16, 0, 2 * Math.PI);
+        ctx.arc(coords.x, coords.y, 14, 0, 2 * Math.PI);
         ctx.fill();
       }
 
@@ -150,7 +161,16 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
     for (const center of centers) {
       const coords = getCanvasCoords(center.coordinates.lat, center.coordinates.lng, canvas.width, canvas.height);
       if (Math.hypot(coords.x - clickX, coords.y - clickY) < 22) {
-        setSelectedCenter(center);
+        if (center.status === 'critical') {
+          setOpenCriticalIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(center.id)) next.delete(center.id);
+            else next.add(center.id);
+            return next;
+          });
+        } else {
+          setSelectedCenter(center);
+        }
         onCenterClick?.(center);
         return;
       }
@@ -169,13 +189,20 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
           onClick={handleMouseClick}
         />
         {criticalPositions.map(({ center, left, top }) => (
-          <div
-            key={`critical-${center.id}`}
-            className="map-critical-tooltip-overlay"
-            style={{ left, top }}
-          >
-            <CriticalTooltip center={center} />
-          </div>
+          <React.Fragment key={`critical-${center.id}`}>
+            <div
+              className="map-critical-marker-halo"
+              style={{ left, top }}
+            />
+            {openCriticalIds.has(center.id) && (
+              <div
+                className="map-critical-tooltip-overlay"
+                style={{ left, top }}
+              >
+                <CriticalTooltip center={center} />
+              </div>
+            )}
+          </React.Fragment>
         ))}
         {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
           <div style={{ position: 'absolute', top: 8, right: 8, background: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: '0.7rem', border: '1px solid var(--border-color)' }}>

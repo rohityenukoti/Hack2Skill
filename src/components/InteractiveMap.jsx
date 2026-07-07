@@ -3,6 +3,7 @@ import { GoogleMap, LoadScript, Marker, Polyline, InfoWindow } from '@react-goog
 import CanvasMap from './CanvasMap';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const CRITICAL_TOOLTIP_DELAY_MS = 2000;
 
 const mapContainerStyle = { width: '100%', height: '300px', borderRadius: 'var(--radius-md)' };
 
@@ -23,18 +24,18 @@ function CriticalTooltip({ center }) {
   );
 }
 
-function CriticalTooltipOverlay({ map, center }) {
+function MapPointOverlay({ map, coordinates, className, children }) {
   const [position, setPosition] = useState(null);
 
   useEffect(() => {
-    if (!map || !center || !window.google?.maps) return;
+    if (!map || !coordinates || !window.google?.maps) return;
 
     const overlay = new window.google.maps.OverlayView();
     overlay.onAdd = () => {};
     overlay.draw = () => {
       const projection = overlay.getProjection();
       if (!projection) return;
-      const point = projection.fromLatLngToContainerPixel(center.coordinates);
+      const point = projection.fromLatLngToContainerPixel(coordinates);
       if (point) setPosition({ x: point.x, y: point.y });
     };
     overlay.setMap(map);
@@ -48,18 +49,38 @@ function CriticalTooltipOverlay({ map, center }) {
       overlay.setMap(null);
       listeners.forEach((listener) => window.google.maps.event.removeListener(listener));
     };
-  }, [map, center]);
+  }, [map, coordinates]);
 
   if (!position) return null;
 
   return (
-    <div
-      className="map-critical-tooltip-overlay"
-      style={{ left: position.x, top: position.y }}
-    >
-      <CriticalTooltip center={center} />
+    <div className={className} style={{ left: position.x, top: position.y }}>
+      {children}
     </div>
   );
+}
+
+function useCriticalTooltipState(criticalCenters) {
+  const [openCriticalIds, setOpenCriticalIds] = useState(() => new Set());
+
+  useEffect(() => {
+    setOpenCriticalIds(new Set());
+    const timer = window.setTimeout(() => {
+      setOpenCriticalIds(new Set(criticalCenters.map((c) => c.id)));
+    }, CRITICAL_TOOLTIP_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [criticalCenters]);
+
+  const toggleCriticalTooltip = useCallback((centerId) => {
+    setOpenCriticalIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(centerId)) next.delete(centerId);
+      else next.add(centerId);
+      return next;
+    });
+  }, []);
+
+  return { openCriticalIds, toggleCriticalTooltip };
 }
 
 function GoogleMapsView({ centers, redistributions, onCenterClick }) {
@@ -78,6 +99,16 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
     () => centers.filter((c) => c.status === 'critical'),
     [centers],
   );
+  const { openCriticalIds, toggleCriticalTooltip } = useCriticalTooltipState(criticalCenters);
+
+  const handleMarkerClick = useCallback((center) => {
+    if (center.status === 'critical') {
+      toggleCriticalTooltip(center.id);
+    } else {
+      setSelectedCenter(center);
+    }
+    onCenterClick?.(center);
+  }, [onCenterClick, toggleCriticalTooltip]);
 
   const fitMapToCenters = useCallback((map) => {
     if (!map || !centers.length || !window.google?.maps) return;
@@ -135,10 +166,7 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
                 strokeWeight: c.status === 'critical' ? 3 : 2,
               }}
               title={c.name}
-              onClick={() => {
-                setSelectedCenter(c);
-                onCenterClick?.(c);
-              }}
+              onClick={() => handleMarkerClick(c)}
             />
           ))}
 
@@ -170,7 +198,22 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
         </GoogleMap>
 
         {mapInstance && criticalCenters.map((c) => (
-          <CriticalTooltipOverlay key={`critical-${c.id}`} map={mapInstance} center={c} />
+          <React.Fragment key={`critical-${c.id}`}>
+            <MapPointOverlay
+              map={mapInstance}
+              coordinates={c.coordinates}
+              className="map-critical-marker-halo"
+            />
+            {openCriticalIds.has(c.id) && (
+              <MapPointOverlay
+                map={mapInstance}
+                coordinates={c.coordinates}
+                className="map-critical-tooltip-overlay"
+              >
+                <CriticalTooltip center={c} />
+              </MapPointOverlay>
+            )}
+          </React.Fragment>
         ))}
       </div>
     </LoadScript>
