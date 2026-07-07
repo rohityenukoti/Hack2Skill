@@ -292,7 +292,7 @@ export default function HomePage({ onLogin, language = 'en', onLanguageChange })
       <header className="home-navbar">
         <div className="home-navbar-inner">
           <div className="home-logo">
-            <span style={{ fontSize: '2.2rem' }}>🏛️</span>
+            <span style={{ fontSize: '2.2rem' }} aria-hidden="true">🏥</span>
             <div>
               <span className="home-logo-text">Chikitsalay Setu</span>
               <span className="home-logo-sub">{ui.logoSub}</span>

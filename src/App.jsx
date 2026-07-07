@@ -249,7 +249,7 @@ export default function App() {
       <header style={{ background: '#ffffff', borderBottom: '1px solid var(--border-color)', padding: '1rem 2rem' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '2.5rem' }}>🏛️</span>
+            <span style={{ fontSize: '2.5rem' }} aria-hidden="true">🏥</span>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2 }}>
                 चिकित्सालय सेतु | Chikitsalay Setu
