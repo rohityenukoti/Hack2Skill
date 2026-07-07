@@ -147,7 +147,7 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
         <canvas
           ref={canvasRef}
           width={650}
-          height={380}
+          height={300}
           style={{ width: '100%', height: '100%', cursor: 'pointer', display: 'block' }}
           onClick={handleMouseClick}
         />

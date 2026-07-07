@@ -302,14 +302,14 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .transfers-panel-body {
-    max-height: 380px;
+    max-height: 300px;
   }
 }
 
 .map-container-wrapper {
   display: flex;
   flex-direction: column;
-  height: 480px;
+  height: 300px;
 }
 
 .map-placeholder {
@@ -407,6 +407,7 @@ h1, h2, h3, h4, h5, h6 {
 .transfers-panel-body {
   flex: 1;
   min-height: 0;
+  max-height: 300px;
   overflow-y: auto;
   padding-right: 0.25rem;
 }

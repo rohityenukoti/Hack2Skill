@@ -4,7 +4,7 @@ import CanvasMap from './CanvasMap';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-const mapContainerStyle = { width: '100%', height: '380px', borderRadius: 'var(--radius-md)' };
+const mapContainerStyle = { width: '100%', height: '300px', borderRadius: 'var(--radius-md)' };
 
 function statusColor(status) {
   if (status === 'critical') return '#b91c1c';
