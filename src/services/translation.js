@@ -1,11 +1,57 @@
 import { callTranslateBatch, callTranslateText, isCloudFunctionsAvailable } from './api';
 
-const cache = new Map();
+const STORAGE_KEY = 'chikitsalay_translation_cache';
+const CACHE_VERSION = 1;
 const BATCH_SIZE = 80;
+
+const cache = new Map();
 
 function cacheKey(targetLanguage, text) {
   return `${targetLanguage}:${text}`;
 }
+
+function loadCacheFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+
+    const parsed = JSON.parse(raw);
+    if (parsed?.version !== CACHE_VERSION || typeof parsed.entries !== 'object') {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    for (const [key, value] of Object.entries(parsed.entries)) {
+      if (typeof value === 'string') cache.set(key, value);
+    }
+  } catch (error) {
+    console.warn('Failed to load translation cache from localStorage:', error);
+  }
+}
+
+let persistTimer = null;
+
+function schedulePersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ version: CACHE_VERSION, entries: Object.fromEntries(cache) })
+      );
+    } catch (error) {
+      console.warn('Failed to persist translation cache to localStorage:', error);
+    }
+  }, 150);
+}
+
+function setCacheEntry(key, value) {
+  cache.set(key, value);
+  schedulePersist();
+}
+
+loadCacheFromStorage();
 
 async function translateBatchChunks(texts, targetLanguage) {
   const translations = [];
@@ -31,7 +77,7 @@ export async function translateUiText(text, targetLanguage = 'hi') {
     try {
       const result = await callTranslateText(text, targetLanguage);
       if (result?.translatedText) {
-        cache.set(key, result.translatedText);
+        setCacheEntry(key, result.translatedText);
         return result.translatedText;
       }
     } catch (error) {
@@ -64,6 +110,7 @@ export async function translateUiStrings(strings, targetLanguage = 'hi') {
         cache.set(cacheKey(targetLanguage, item.text), value);
         item.cached = value;
       });
+      schedulePersist();
     } catch (error) {
       console.error('Batch translation failed:', error);
       uncached.forEach((item) => {
@@ -233,4 +280,13 @@ export async function translateHomePageContent(
 
 export function clearTranslationCache() {
   cache.clear();
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn('Failed to clear translation cache from localStorage:', error);
+  }
 }
