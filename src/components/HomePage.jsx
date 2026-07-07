@@ -177,10 +177,9 @@ const LOGIN_CARD_CLASSES = {
   },
 };
 
-export default function HomePage({ onLogin }) {
+export default function HomePage({ onLogin, language = 'en', onLanguageChange }) {
   const [psaIndex, setPsaIndex] = useState(0);
   const [countersVisible, setCountersVisible] = useState(false);
-  const [language, setLanguage] = useState('en');
   const [ui, setUi] = useState(UI_STRINGS);
   const [psaAnnouncements, setPsaAnnouncements] = useState(PSA_ANNOUNCEMENTS);
   const [features, setFeatures] = useState(FEATURES_SOURCE);
@@ -270,7 +269,7 @@ export default function HomePage({ onLogin }) {
               <select
                 className="gov-language-select"
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => onLanguageChange?.(e.target.value)}
                 aria-label="Select language"
                 disabled={isTranslating}
               >

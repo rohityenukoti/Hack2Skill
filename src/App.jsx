@@ -22,7 +22,7 @@ import HomePage from './components/HomePage';
 import LoginModal from './components/LoginModal';
 import CitizenPortal from './components/CitizenPortal';
 import DevToolsModal from './components/DevToolsModal';
-import { LANGUAGE_OPTIONS } from './constants/languages';
+import { LANGUAGE_OPTIONS, getStoredLanguage, setStoredLanguage } from './constants/languages';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -37,8 +37,13 @@ export default function App() {
   const [seedStatus, setSeedStatus] = useState('');
   const [functionsTestStatus, setFunctionsTestStatus] = useState('');
   const [translationTestStatus, setTranslationTestStatus] = useState('');
-  const [citizenLanguage, setCitizenLanguage] = useState('en');
+  const [preferredLanguage, setPreferredLanguage] = useState(getStoredLanguage);
   const [citizenIsTranslating, setCitizenIsTranslating] = useState(false);
+
+  const handleLanguageChange = (code) => {
+    setPreferredLanguage(code);
+    setStoredLanguage(code);
+  };
 
   const isLive = isFirebaseLive();
   const hasAiBackend = isAiBackendLive();
@@ -178,7 +183,11 @@ export default function App() {
   if (currentView === 'home' && !authUser?.role) {
     return (
       <>
-        <HomePage onLogin={handleOpenLogin} />
+        <HomePage
+          onLogin={handleOpenLogin}
+          language={preferredLanguage}
+          onLanguageChange={handleLanguageChange}
+        />
         {loginModalRole && (
           <LoginModal
             role={loginModalRole}
@@ -203,8 +212,8 @@ export default function App() {
               <div className="gov-accessibility-controls">
                 <select
                   className="gov-language-select"
-                  value={citizenLanguage}
-                  onChange={(e) => setCitizenLanguage(e.target.value)}
+                  value={preferredLanguage}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
                   aria-label="Select language"
                   disabled={citizenIsTranslating}
                 >
@@ -299,7 +308,7 @@ export default function App() {
           {activeTab === 'citizen' && userRole === 'citizen' && (
             <CitizenPortal
               centers={centers}
-              language={citizenLanguage}
+              language={preferredLanguage}
               onTranslatingChange={setCitizenIsTranslating}
             />
           )}
