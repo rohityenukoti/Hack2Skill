@@ -1144,6 +1144,39 @@ tr:hover td {
   padding-left: 1rem;
 }
 
+.gov-language-select {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  padding: 1px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-family: inherit;
+  transition: var(--transition-fast);
+}
+
+.gov-language-select:hover:not(:disabled) {
+  background: #334155;
+  color: #ffffff;
+}
+
+.gov-language-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.gov-language-select option {
+  background: #0f172a;
+  color: #cbd5e1;
+}
+
+.gov-translating-label {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
 .gov-accessibility-btn {
   background: transparent;
   border: 1px solid #475569;

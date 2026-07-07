@@ -128,6 +128,109 @@ export async function translateCitizenPortalContent(
   return { ui, schemes: translatedSchemes, categories: translatedCategories };
 }
 
+/** Translate all home page strings in a single batched API call. */
+export async function translateHomePageContent(
+  { uiStrings, psaAnnouncements, features, quickStats, loginCards, footer },
+  targetLanguage
+) {
+  if (targetLanguage === 'en') {
+    return {
+      ui: { ...uiStrings },
+      psaAnnouncements,
+      features,
+      quickStats,
+      loginCards,
+      footer: { ...footer },
+    };
+  }
+
+  const uiKeys = Object.keys(uiStrings);
+  const uiValues = uiKeys.map((key) => uiStrings[key]);
+  const psaTexts = psaAnnouncements.map((psa) => psa.text);
+  const featureTitles = features.map((feature) => feature.title);
+  const featureDescriptions = features.map((feature) => feature.description);
+  const statLabels = quickStats.map((stat) => stat.label);
+  const loginCardStrings = loginCards.flatMap((card) => [
+    card.title,
+    card.subtitle,
+    ...card.features,
+    card.buttonLabel,
+  ]);
+  const footerKeys = Object.keys(footer);
+  const footerValues = footerKeys.map((key) => footer[key]);
+
+  const allStrings = [
+    ...uiValues,
+    ...psaTexts,
+    ...featureTitles,
+    ...featureDescriptions,
+    ...statLabels,
+    ...loginCardStrings,
+    ...footerValues,
+  ];
+  const translated = await translateUiStrings(allStrings, targetLanguage);
+
+  let offset = 0;
+
+  const ui = {};
+  uiKeys.forEach((key, index) => {
+    ui[key] = translated[offset + index];
+  });
+  offset += uiValues.length;
+
+  const translatedPsas = psaAnnouncements.map((psa, index) => ({
+    ...psa,
+    text: translated[offset + index],
+  }));
+  offset += psaTexts.length;
+
+  const translatedFeatures = features.map((feature, index) => ({
+    ...feature,
+    title: translated[offset + index],
+    description: translated[offset + featureTitles.length + index],
+  }));
+  offset += featureTitles.length + featureDescriptions.length;
+
+  const translatedQuickStats = quickStats.map((stat, index) => ({
+    ...stat,
+    label: translated[offset + index],
+  }));
+  offset += statLabels.length;
+
+  const stringsPerCard = loginCards.map(
+    (card) => 2 + card.features.length + 1
+  );
+  const translatedLoginCards = loginCards.map((card, cardIndex) => {
+    const cardOffset =
+      offset + stringsPerCard.slice(0, cardIndex).reduce((sum, n) => sum + n, 0);
+    const featureCount = card.features.length;
+    return {
+      ...card,
+      title: translated[cardOffset],
+      subtitle: translated[cardOffset + 1],
+      features: card.features.map(
+        (_, featureIndex) => translated[cardOffset + 2 + featureIndex]
+      ),
+      buttonLabel: translated[cardOffset + 2 + featureCount],
+    };
+  });
+  offset += loginCardStrings.length;
+
+  const translatedFooter = {};
+  footerKeys.forEach((key, index) => {
+    translatedFooter[key] = translated[offset + index];
+  });
+
+  return {
+    ui,
+    psaAnnouncements: translatedPsas,
+    features: translatedFeatures,
+    quickStats: translatedQuickStats,
+    loginCards: translatedLoginCards,
+    footer: translatedFooter,
+  };
+}
+
 export function clearTranslationCache() {
   cache.clear();
 }

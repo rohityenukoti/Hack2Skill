@@ -21,14 +21,7 @@ import {
 } from 'lucide-react';
 import { saveFeedback, getFeedbackForCenter } from '../services/firebase';
 import { translateCitizenPortalContent } from '../services/translation';
-
-const LANGUAGE_OPTIONS = [
-  { code: 'en', label: 'English' },
-  { code: 'hi', label: 'हिंदी' },
-  { code: 'kn', label: 'ಕನ್ನಡ' },
-  { code: 'te', label: 'తెలుగు' },
-  { code: 'ta', label: 'தமிழ்' },
-];
+import { LANGUAGE_OPTIONS } from '../constants/languages';
 
 const UI_STRINGS = {
   pageTitle: 'Citizen Health Portal',
