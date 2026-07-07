@@ -21,6 +21,7 @@ import {
 } from './services/firebase';
 import { isAiBackendLive } from './services/gemini';
 import { subscribeToAuth, signOut, seedDemoAccounts } from './services/auth';
+import { testCloudFunctions } from './services/api';
 
 import AdminDashboard from './components/AdminDashboard';
 import PHCPortal from './components/PHCPortal';
@@ -40,6 +41,7 @@ export default function App() {
   const [activeCenterId, setActiveCenterId] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [seedStatus, setSeedStatus] = useState('');
+  const [functionsTestStatus, setFunctionsTestStatus] = useState('');
 
   const isLive = isFirebaseLive();
   const hasAiBackend = isAiBackendLive();
@@ -119,7 +121,19 @@ export default function App() {
       const result = await seedDemoAccounts();
       setSeedStatus(`Seeded ${result.data.centersSeeded} centers and demo users.`);
     } catch (err) {
-      setSeedStatus(err.message || 'Seed failed — deploy functions first.');
+      setSeedStatus(err.message || 'Seed failed — check Cloud Functions deploy and try again.');
+    }
+  };
+
+  const handleTestFunctions = async () => {
+    setFunctionsTestStatus('Testing Cloud Functions...');
+    try {
+      const result = await testCloudFunctions();
+      const count = result?.languages?.length ?? 0;
+      setFunctionsTestStatus(`Cloud Functions OK — ${count} languages available via asia-south1.`);
+    } catch (err) {
+      const code = err.code ? ` (${err.code})` : '';
+      setFunctionsTestStatus(`Cloud Functions failed${code}: ${err.message}`);
     }
   };
 
@@ -337,6 +351,21 @@ export default function App() {
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                   Configure Firebase via <code>.env</code> (see <code>.env.example</code>). Gemini API keys are stored server-side in Cloud Functions secrets — never in the browser.
                 </p>
+
+                <button type="button" className="btn-secondary" onClick={handleTestFunctions} style={{ justifyContent: 'center' }}>
+                  <Cloud size={16} />
+                  Test Cloud Functions
+                </button>
+                {functionsTestStatus && (
+                  <p style={{
+                    fontSize: '0.8rem',
+                    color: functionsTestStatus.startsWith('Cloud Functions OK')
+                      ? 'var(--status-success)'
+                      : 'var(--status-critical)',
+                  }}>
+                    {functionsTestStatus}
+                  </p>
+                )}
 
                 <button type="button" className="btn-primary" onClick={handleSeedDemo} style={{ justifyContent: 'center' }}>
                   <Sparkles size={16} />

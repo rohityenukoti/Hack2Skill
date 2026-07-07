@@ -45,3 +45,12 @@ export async function callSyncToBigQuery() {
 export function isCloudFunctionsAvailable() {
   return isFirebaseLive() && !!getFirebaseFunctions();
 }
+
+export async function testCloudFunctions() {
+  const fn = getCallable('getLanguages');
+  if (!fn || !isFirebaseLive()) {
+    throw new Error('Firebase not configured — add VITE_FIREBASE_* vars to .env and rebuild.');
+  }
+  const result = await fn({});
+  return result.data;
+}
