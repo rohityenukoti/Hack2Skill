@@ -13,13 +13,24 @@ function statusColor(status) {
   return '#0b4c8c';
 }
 
-function CriticalTooltip({ center, onClose }) {
+function CriticalTooltip({ center, onClose, onTooltipClick }) {
   return (
-    <div className="map-critical-tooltip">
+    <div
+      className="map-critical-tooltip"
+      onClick={() => onTooltipClick?.(center)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onTooltipClick?.(center);
+      }}
+      role="button"
+      tabIndex={0}
+    >
       <button
         type="button"
         className="map-critical-tooltip__close"
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
         aria-label={`Close ${center.name} alert`}
       >
         ×
@@ -120,12 +131,19 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
 
   const handleMarkerClick = useCallback((center) => {
     if (center.status === 'critical') {
+      const isOpening = !openCriticalIds.has(center.id);
       toggleCriticalTooltip(center.id);
+      onCenterClick?.(center, { source: 'marker', isOpening });
     } else {
+      const isOpening = selectedCenter?.id !== center.id;
       setSelectedCenter((prev) => (prev?.id === center.id ? null : center));
+      onCenterClick?.(center, { source: 'marker', isOpening });
     }
-    onCenterClick?.(center);
-  }, [onCenterClick, toggleCriticalTooltip]);
+  }, [onCenterClick, toggleCriticalTooltip, openCriticalIds, selectedCenter]);
+
+  const handleTooltipClick = useCallback((center) => {
+    onCenterClick?.(center, { source: 'tooltip', isOpening: true });
+  }, [onCenterClick]);
 
   const fitMapToCenters = useCallback((map) => {
     if (!map || !centers.length || !window.google?.maps) return;
@@ -205,7 +223,15 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
               position={{ lat: selectedCenter.coordinates.lat, lng: selectedCenter.coordinates.lng }}
               onCloseClick={() => setSelectedCenter(null)}
             >
-              <div style={{ fontSize: '0.85rem', maxWidth: '200px' }}>
+              <div
+                style={{ fontSize: '0.85rem', maxWidth: '200px', cursor: 'pointer' }}
+                onClick={() => handleTooltipClick(selectedCenter)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') handleTooltipClick(selectedCenter);
+                }}
+                role="button"
+                tabIndex={0}
+              >
                 <strong>{selectedCenter.name}</strong>
                 <p style={{ margin: '4px 0' }}>{selectedCenter.location}</p>
                 <span>Status: {selectedCenter.status}</span>
@@ -227,7 +253,11 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
                 coordinates={c.coordinates}
                 className="map-critical-tooltip-overlay"
               >
-                <CriticalTooltip center={c} onClose={() => closeCriticalTooltip(c.id)} />
+                <CriticalTooltip
+                  center={c}
+                  onClose={() => closeCriticalTooltip(c.id)}
+                  onTooltipClick={handleTooltipClick}
+                />
               </MapPointOverlay>
             )}
           </React.Fragment>

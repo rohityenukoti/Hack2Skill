@@ -42,6 +42,14 @@ export default function AdminDashboard({ centers }) {
   const [executingTransferId, setExecutingTransferId] = useState(null);
   const [bqSyncStatus, setBqSyncStatus] = useState('');
   const hasAutoRunAudit = useRef(false);
+  const interventionsSectionRef = useRef(null);
+
+  const handleMapCenterClick = useCallback((center, { isOpening = true, source = 'marker' } = {}) => {
+    setSelectedCenter(center);
+    if (isOpening || source === 'tooltip') {
+      interventionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
 
   // Subscribe to all center inventories
   useEffect(() => {
@@ -340,7 +348,7 @@ export default function AdminDashboard({ centers }) {
           <InteractiveMap 
             centers={centers} 
             redistributions={aiData?.redistributions || []}
-            onCenterClick={(c) => setSelectedCenter(c)}
+            onCenterClick={handleMapCenterClick}
           />
         </div>
 
@@ -445,7 +453,7 @@ export default function AdminDashboard({ centers }) {
       </div>
 
       {/* Underperforming & Bottlenecks Panel */}
-      <div className="glass-card">
+      <div className="glass-card" ref={interventionsSectionRef}>
         <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--status-critical)' }}>
           <AlertOctagon size={20} />
           Facilities Requiring District Intervention

@@ -25,13 +25,24 @@ function computeBounds(centers) {
   };
 }
 
-function CriticalTooltip({ center, onClose }) {
+function CriticalTooltip({ center, onClose, onTooltipClick }) {
   return (
-    <div className="map-critical-tooltip">
+    <div
+      className="map-critical-tooltip"
+      onClick={() => onTooltipClick?.(center)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onTooltipClick?.(center);
+      }}
+      role="button"
+      tabIndex={0}
+    >
       <button
         type="button"
         className="map-critical-tooltip__close"
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
         aria-label={`Close ${center.name} alert`}
       >
         ×
@@ -170,20 +181,27 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
       const coords = getCanvasCoords(center.coordinates.lat, center.coordinates.lng, canvas.width, canvas.height);
       if (Math.hypot(coords.x - clickX, coords.y - clickY) < 22) {
         if (center.status === 'critical') {
+          const isOpening = !openCriticalIds.has(center.id);
           setOpenCriticalIds((prev) => {
             const next = new Set(prev);
             if (next.has(center.id)) next.delete(center.id);
             else next.add(center.id);
             return next;
           });
+          onCenterClick?.(center, { source: 'marker', isOpening });
         } else {
+          const isOpening = selectedCenter?.id !== center.id;
           setSelectedCenter((prev) => (prev?.id === center.id ? null : center));
+          onCenterClick?.(center, { source: 'marker', isOpening });
         }
-        onCenterClick?.(center);
         return;
       }
     }
     setSelectedCenter(null);
+  };
+
+  const handleTooltipClick = (center) => {
+    onCenterClick?.(center, { source: 'tooltip', isOpening: true });
   };
 
   return (
@@ -217,6 +235,7 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
                       return next;
                     });
                   }}
+                  onTooltipClick={handleTooltipClick}
                 />
               </div>
             )}
@@ -229,7 +248,16 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
         )}
       </div>
       {selectedCenter && (
-        <div className="glass-card" style={{ marginTop: '1rem', padding: '1rem' }}>
+        <div
+          className="glass-card"
+          style={{ marginTop: '1rem', padding: '1rem', cursor: 'pointer' }}
+          onClick={() => handleTooltipClick(selectedCenter)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') handleTooltipClick(selectedCenter);
+          }}
+          role="button"
+          tabIndex={0}
+        >
           <h3 style={{ fontSize: '1.1rem', margin: 0 }}>{selectedCenter.name}</h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedCenter.location} • {selectedCenter.status}</p>
         </div>
