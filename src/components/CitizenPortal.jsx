@@ -20,7 +20,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { saveFeedback, getFeedbackForCenter } from '../services/firebase';
-import { translateUiObject, translateUiStrings } from '../services/translation';
+import { translateCitizenPortalContent } from '../services/translation';
 
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English' },
@@ -155,24 +155,20 @@ export default function CitizenPortal({ centers }) {
     (async () => {
       setIsTranslating(true);
       try {
-        const [translatedUi, schemeNames, schemeDescriptions, categories] = await Promise.all([
-          translateUiObject(UI_STRINGS, language),
-          translateUiStrings(HEALTH_SCHEMES.map((s) => s.name), language),
-          translateUiStrings(HEALTH_SCHEMES.map((s) => s.description), language),
-          translateUiStrings(FEEDBACK_CATEGORIES, language),
-        ]);
+        const result = await translateCitizenPortalContent(
+          {
+            uiStrings: UI_STRINGS,
+            schemes: HEALTH_SCHEMES,
+            categories: FEEDBACK_CATEGORIES,
+          },
+          language
+        );
 
         if (cancelled) return;
 
-        setUi(translatedUi);
-        setTranslatedSchemes(
-          HEALTH_SCHEMES.map((scheme, index) => ({
-            ...scheme,
-            name: schemeNames[index],
-            description: schemeDescriptions[index],
-          }))
-        );
-        setTranslatedCategories(categories);
+        setUi(result.ui);
+        setTranslatedSchemes(result.schemes);
+        setTranslatedCategories(result.categories);
       } catch (error) {
         console.error('Citizen portal translation failed:', error);
         if (!cancelled) {

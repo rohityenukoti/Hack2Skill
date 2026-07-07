@@ -17,6 +17,7 @@ initializeApp();
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 15;
+const TRANSLATION_BATCH_MAX = 80;
 
 function checkRateLimit(uid) {
   const now = Date.now();
@@ -32,11 +33,13 @@ function checkRateLimit(uid) {
   }
 }
 
-function requireAuth(request) {
+function requireAuth(request, { applyRateLimit = true } = {}) {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Authentication required.');
   }
-  checkRateLimit(request.auth.uid);
+  if (applyRateLimit) {
+    checkRateLimit(request.auth.uid);
+  }
   return request.auth;
 }
 
@@ -111,17 +114,20 @@ function handleTranslationError(error, context) {
 export const translateTextFn = onCall(
   { region: 'asia-south1', maxInstances: 10 },
   async (request) => {
-    requireAuth(request);
     const { text, texts, targetLanguage } = request.data || {};
     const lang = targetLanguage || 'hi';
+    const isBatch = Array.isArray(texts);
+
+    // Batch translation is one portal action — don't count each string against AI rate limits.
+    requireAuth(request, { applyRateLimit: !isBatch });
 
     try {
-      if (Array.isArray(texts)) {
+      if (isBatch) {
         if (texts.length === 0) {
           throw new HttpsError('invalid-argument', 'texts array must not be empty');
         }
-        if (texts.length > 50) {
-          throw new HttpsError('invalid-argument', 'Maximum 50 strings per batch');
+        if (texts.length > TRANSLATION_BATCH_MAX) {
+          throw new HttpsError('invalid-argument', `Maximum ${TRANSLATION_BATCH_MAX} strings per batch`);
         }
         return await translateBatch(texts, lang);
       }
