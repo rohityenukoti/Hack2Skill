@@ -86,6 +86,21 @@ export function isFirebaseLive() {
   return useRealFirebase;
 }
 
+export function getFirebaseInitStatus() {
+  const hasEnvConfig = !!import.meta.env.VITE_FIREBASE_API_KEY;
+  const hasStoredConfig = !!localStorage.getItem(CONFIG_KEY);
+  if (useRealFirebase) return { ok: true, mode: 'live' };
+  if (hasEnvConfig) return { ok: false, mode: 'init_failed', hint: 'Firebase env vars are set but initialization failed — check the browser console.' };
+  if (hasStoredConfig) return { ok: false, mode: 'stored_config', hint: 'Using saved localStorage config — reload after updating .env.' };
+  return {
+    ok: false,
+    mode: 'missing',
+    hint: import.meta.env.DEV
+      ? 'Add VITE_FIREBASE_* vars to .env and restart `npm run dev`.'
+      : 'Production build is missing Firebase env vars — rebuild with .env and redeploy hosting.',
+  };
+}
+
 export function getDb() {
   return db;
 }

@@ -1,5 +1,5 @@
 import { httpsCallable } from 'firebase/functions';
-import { getFirebaseFunctions, isFirebaseLive } from './firebaseApp';
+import { getFirebaseFunctions, getFirebaseInitStatus, isFirebaseLive } from './firebaseApp';
 
 function getCallable(name) {
   const functions = getFirebaseFunctions();
@@ -47,9 +47,13 @@ export function isCloudFunctionsAvailable() {
 }
 
 export async function testCloudFunctions() {
+  if (!isFirebaseLive()) {
+    const status = getFirebaseInitStatus();
+    throw new Error(status.hint || 'Firebase not configured.');
+  }
   const fn = getCallable('getLanguages');
-  if (!fn || !isFirebaseLive()) {
-    throw new Error('Firebase not configured — add VITE_FIREBASE_* vars to .env and rebuild.');
+  if (!fn) {
+    throw new Error('Firebase Functions SDK not initialized.');
   }
   const result = await fn({});
   return result.data;
