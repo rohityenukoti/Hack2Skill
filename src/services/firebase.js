@@ -82,8 +82,28 @@ export async function seedFirestoreIfEmpty() {
   }
 }
 
-export function subscribeToCenters(onUpdate) {
+export function subscribeToCenters(onUpdate, options = {}) {
+  const { role, centerId } = options;
+
   if (useRealFirebase && db) {
+    // Health center staff may only read their own center doc — a collection
+    // query on /centers is rejected by Firestore security rules.
+    if (role === 'healthcenter') {
+      if (!centerId) {
+        onUpdate([]);
+        return () => {};
+      }
+      return onSnapshot(
+        doc(db, 'centers', centerId),
+        (snapshot) => {
+          onUpdate(snapshot.exists() ? [{ id: snapshot.id, ...snapshot.data() }] : []);
+        },
+        (error) => {
+          console.error('subscribeToCenters failed:', error);
+        }
+      );
+    }
+
     const centersQuery = query(collection(db, 'centers'));
     return onSnapshot(
       centersQuery,
@@ -97,12 +117,16 @@ export function subscribeToCenters(onUpdate) {
       }
     );
   }
-  return subscribeToCentersLocal(onUpdate);
+  return subscribeToCentersLocal(onUpdate, options);
 }
 
-function subscribeToCentersLocal(onUpdate) {
+function subscribeToCentersLocal(onUpdate, options = {}) {
   const fetchLocal = () => {
-    onUpdate(JSON.parse(localStorage.getItem(LOCAL_CENTERS_KEY) || '[]'));
+    let centers = JSON.parse(localStorage.getItem(LOCAL_CENTERS_KEY) || '[]');
+    if (options.role === 'healthcenter' && options.centerId) {
+      centers = centers.filter((c) => c.id === options.centerId);
+    }
+    onUpdate(centers);
   };
   fetchLocal();
   localListeners.add(fetchLocal);

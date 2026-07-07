@@ -63,15 +63,18 @@ export default function App() {
   useEffect(() => {
     if (authLoading) return undefined;
 
-    if (!authUser) {
+    if (!authUser?.role) {
       setCenters([]);
       return undefined;
     }
 
-    const unsubscribe = subscribeToCenters((centersData) => {
-      setCenters(centersData);
-      setActiveCenterId((prev) => prev || centersData[0]?.id || '');
-    });
+    const unsubscribe = subscribeToCenters(
+      (centersData) => {
+        setCenters(centersData);
+        setActiveCenterId((prev) => prev || authUser.centerId || centersData[0]?.id || '');
+      },
+      { role: authUser.role, centerId: authUser.centerId }
+    );
     return () => unsubscribe();
   }, [authUser, authLoading]);
 
