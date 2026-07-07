@@ -13,9 +13,17 @@ function statusColor(status) {
   return '#0b4c8c';
 }
 
-function CriticalTooltip({ center }) {
+function CriticalTooltip({ center, onClose }) {
   return (
     <div className="map-critical-tooltip">
+      <button
+        type="button"
+        className="map-critical-tooltip__close"
+        onClick={onClose}
+        aria-label={`Close ${center.name} alert`}
+      >
+        ×
+      </button>
       <span className="map-critical-tooltip__badge">URGENT</span>
       <strong>{center.name}</strong>
       <p>{center.location}</p>
@@ -80,7 +88,16 @@ function useCriticalTooltipState(criticalCenters) {
     });
   }, []);
 
-  return { openCriticalIds, toggleCriticalTooltip };
+  const closeCriticalTooltip = useCallback((centerId) => {
+    setOpenCriticalIds((prev) => {
+      if (!prev.has(centerId)) return prev;
+      const next = new Set(prev);
+      next.delete(centerId);
+      return next;
+    });
+  }, []);
+
+  return { openCriticalIds, toggleCriticalTooltip, closeCriticalTooltip };
 }
 
 function GoogleMapsView({ centers, redistributions, onCenterClick }) {
@@ -99,13 +116,13 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
     () => centers.filter((c) => c.status === 'critical'),
     [centers],
   );
-  const { openCriticalIds, toggleCriticalTooltip } = useCriticalTooltipState(criticalCenters);
+  const { openCriticalIds, toggleCriticalTooltip, closeCriticalTooltip } = useCriticalTooltipState(criticalCenters);
 
   const handleMarkerClick = useCallback((center) => {
     if (center.status === 'critical') {
       toggleCriticalTooltip(center.id);
     } else {
-      setSelectedCenter(center);
+      setSelectedCenter((prev) => (prev?.id === center.id ? null : center));
     }
     onCenterClick?.(center);
   }, [onCenterClick, toggleCriticalTooltip]);
@@ -210,7 +227,7 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
                 coordinates={c.coordinates}
                 className="map-critical-tooltip-overlay"
               >
-                <CriticalTooltip center={c} />
+                <CriticalTooltip center={c} onClose={() => closeCriticalTooltip(c.id)} />
               </MapPointOverlay>
             )}
           </React.Fragment>

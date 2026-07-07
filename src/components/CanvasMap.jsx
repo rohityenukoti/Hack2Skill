@@ -25,9 +25,17 @@ function computeBounds(centers) {
   };
 }
 
-function CriticalTooltip({ center }) {
+function CriticalTooltip({ center, onClose }) {
   return (
     <div className="map-critical-tooltip">
+      <button
+        type="button"
+        className="map-critical-tooltip__close"
+        onClick={onClose}
+        aria-label={`Close ${center.name} alert`}
+      >
+        ×
+      </button>
       <span className="map-critical-tooltip__badge">URGENT</span>
       <strong>{center.name}</strong>
       <p>{center.location}</p>
@@ -169,7 +177,7 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
             return next;
           });
         } else {
-          setSelectedCenter(center);
+          setSelectedCenter((prev) => (prev?.id === center.id ? null : center));
         }
         onCenterClick?.(center);
         return;
@@ -199,7 +207,17 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
                 className="map-critical-tooltip-overlay"
                 style={{ left, top }}
               >
-                <CriticalTooltip center={center} />
+                <CriticalTooltip
+                  center={center}
+                  onClose={() => {
+                    setOpenCriticalIds((prev) => {
+                      if (!prev.has(center.id)) return prev;
+                      const next = new Set(prev);
+                      next.delete(center.id);
+                      return next;
+                    });
+                  }}
+                />
               </div>
             )}
           </React.Fragment>
