@@ -34,6 +34,18 @@ function groupAlertsByCenter(alerts, centers) {
   });
 }
 
+function urgencyRank(urgency) {
+  return urgency === 'High' ? 0 : 1;
+}
+
+function sortTransfersByUrgency(transfers) {
+  return [...transfers].sort((a, b) => urgencyRank(a.urgency) - urgencyRank(b.urgency));
+}
+
+function transferKey(transfer) {
+  return `${transfer.fromId}-${transfer.toId}-${transfer.itemName}`;
+}
+
 export default function AdminDashboard({ centers }) {
   const [inventories, setInventories] = useState({});
   const [aiData, setAiData] = useState(null);
@@ -151,15 +163,17 @@ export default function AdminDashboard({ centers }) {
     handleRunAI();
   }, [centers, inventories, handleRunAI]);
 
-  const handleNotifyHealthCenters = async (idx, transfer) => {
-    setExecutingTransferId(idx);
+  const handleNotifyHealthCenters = async (transfer) => {
+    const key = transfer.id || transferKey(transfer);
+    setExecutingTransferId(key);
     try {
       await notifyHealthCentersForTransfer(transfer);
 
       setAiData((prev) => {
         if (!prev) return null;
-        const updatedRedist = [...prev.redistributions];
-        updatedRedist.splice(idx, 1);
+        const updatedRedist = prev.redistributions.filter(
+          (r) => transferKey(r) !== key
+        );
         return { ...prev, redistributions: updatedRedist };
       });
     } catch (err) {
@@ -170,13 +184,18 @@ export default function AdminDashboard({ centers }) {
   };
 
   const pendingTransfers = useMemo(
-    () => transfers.filter((t) => t.status === 'notified'),
+    () => sortTransfersByUrgency(transfers.filter((t) => t.status === 'notified')),
     [transfers]
   );
 
   const completedTransfers = useMemo(
-    () => transfers.filter((t) => t.status === 'completed'),
+    () => sortTransfersByUrgency(transfers.filter((t) => t.status === 'completed')),
     [transfers]
+  );
+
+  const sortedRedistributions = useMemo(
+    () => sortTransfersByUrgency(aiData?.redistributions || []),
+    [aiData?.redistributions]
   );
 
   const handleSyncBigQuery = async () => {
@@ -198,8 +217,12 @@ export default function AdminDashboard({ centers }) {
     [aiData?.alerts, centers]
   );
 
-  const renderTransferCard = (transfer, idx, { showNotify = false, showStatus = false } = {}) => (
-    <div key={transfer.id || idx} className="insight-card success-insight transfer-item-card">
+  const renderTransferCard = (transfer, { showNotify = false, showStatus = false } = {}) => {
+    const key = transfer.id || transferKey(transfer);
+    const isExecuting = executingTransferId === key;
+
+    return (
+    <div key={key} className="insight-card success-insight transfer-item-card">
       <div className="insight-card-header">
         <span className="insight-card-label">Transfer Recommendation</span>
         <span className={`badge ${transfer.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
@@ -230,10 +253,10 @@ export default function AdminDashboard({ centers }) {
       {showNotify && (
         <button
           className="insight-action-btn"
-          disabled={executingTransferId === idx}
-          onClick={() => handleNotifyHealthCenters(idx, transfer)}
+          disabled={isExecuting}
+          onClick={() => handleNotifyHealthCenters(transfer)}
         >
-          {executingTransferId === idx ? (
+          {isExecuting ? (
             <>
               <RefreshCw className="spin" size={10} />
               Notifying...
@@ -247,7 +270,8 @@ export default function AdminDashboard({ centers }) {
         </button>
       )}
     </div>
-  );
+    );
+  };
 
   const renderTransfersPanel = () => {
     if (isLoadingAI) {
@@ -278,12 +302,12 @@ export default function AdminDashboard({ centers }) {
 
     return (
       <div className="transfer-items-list">
-        {(aiData?.redistributions || []).map((redist, idx) => renderTransferCard(redist, idx, { showNotify: true }))}
+        {sortedRedistributions.map((redist) => renderTransferCard(redist, { showNotify: true }))}
 
         {pendingTransfers.length > 0 && (
           <div className="transfer-subsection">
             <h4 className="transfer-subsection-title">Awaiting Centre Confirmation</h4>
-            {pendingTransfers.map((transfer, idx) => renderTransferCard(transfer, idx, { showStatus: true }))}
+            {pendingTransfers.map((transfer) => renderTransferCard(transfer, { showStatus: true }))}
           </div>
         )}
 
