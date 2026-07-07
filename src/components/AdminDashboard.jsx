@@ -343,7 +343,9 @@ export default function AdminDashboard({ centers }) {
               <span className="insight-section-count">{aiData.redistributions.length}</span>
             )}
           </div>
-          {renderTransfersPanel()}
+          <div className="transfers-panel-body">
+            {renderTransfersPanel()}
+          </div>
         </div>
       </div>
 

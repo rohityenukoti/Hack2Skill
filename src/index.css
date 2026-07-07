@@ -300,6 +300,10 @@ h1, h2, h3, h4, h5, h6 {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .transfers-panel-body {
+    max-height: 380px;
+  }
 }
 
 .map-container-wrapper {
@@ -330,10 +334,42 @@ h1, h2, h3, h4, h5, h6 {
 
 .map-transfers-grid {
   margin-bottom: 1.5rem;
+  align-items: stretch;
+}
+
+.map-card {
+  display: flex;
+  flex-direction: column;
 }
 
 .transfers-panel {
   min-height: 0;
+  overflow: hidden;
+}
+
+.transfers-panel .insight-section-header {
+  flex-shrink: 0;
+}
+
+.transfers-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.transfers-panel-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.transfers-panel-body::-webkit-scrollbar-thumb {
+  background: rgba(15, 76, 129, 0.2);
+  border-radius: 4px;
+}
+
+.transfers-panel-body .ai-pill-loading,
+.transfers-panel-body .insight-empty-state {
+  min-height: 100%;
 }
 
 .transfer-items-list {
