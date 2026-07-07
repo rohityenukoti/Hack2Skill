@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MapPin,
   Bed,
@@ -20,6 +20,14 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { saveFeedback, getFeedbackForCenter } from '../services/firebase';
+import { translateUiText } from '../services/translation';
+
+const LANGUAGE_OPTIONS = [
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'हिंदी' },
+  { code: 'kn', label: 'ಕನ್ನಡ' },
+  { code: 'te', label: 'తెలుగు' },
+];
 
 const FEEDBACK_CATEGORIES = [
   'Cleanliness',
@@ -71,6 +79,27 @@ export default function CitizenPortal({ centers }) {
   const [feedbackCategories, setFeedbackCategories] = useState([]);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [feedbackName, setFeedbackName] = useState('');
+  const [language, setLanguage] = useState('en');
+  const [translatedSchemes, setTranslatedSchemes] = useState(HEALTH_SCHEMES);
+
+  useEffect(() => {
+    if (language === 'en') {
+      setTranslatedSchemes(HEALTH_SCHEMES);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const translated = await Promise.all(
+        HEALTH_SCHEMES.map(async (scheme) => ({
+          ...scheme,
+          name: await translateUiText(scheme.name, language),
+          description: await translateUiText(scheme.description, language),
+        }))
+      );
+      if (!cancelled) setTranslatedSchemes(translated);
+    })();
+    return () => { cancelled = true; };
+  }, [language]);
 
   // Filter and search centers
   const filteredCenters = centers.filter(center => {
@@ -154,7 +183,7 @@ export default function CitizenPortal({ centers }) {
       </div>
 
       {/* Tab Switcher */}
-      <div className="citizen-tabs">
+      <div className="citizen-tabs" style={{ alignItems: 'center' }}>
         <button
           className={`citizen-tab ${activeTab === 'find' ? 'active' : ''}`}
           onClick={() => setActiveTab('find')}
@@ -176,6 +205,16 @@ export default function CitizenPortal({ centers }) {
           <Heart size={16} />
           Health Schemes
         </button>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          style={{ marginLeft: 'auto', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
+          aria-label="Select language"
+        >
+          {LANGUAGE_OPTIONS.map((opt) => (
+            <option key={opt.code} value={opt.code}>{opt.label}</option>
+          ))}
+        </select>
       </div>
 
       {/* Tab: Find Centers */}
@@ -441,7 +480,7 @@ export default function CitizenPortal({ centers }) {
       {activeTab === 'schemes' && (
         <div className="citizen-schemes-section">
           <div className="citizen-schemes-grid">
-            {HEALTH_SCHEMES.map((scheme, idx) => (
+            {translatedSchemes.map((scheme, idx) => (
               <div key={idx} className="glass-card citizen-scheme-card">
                 <div className="citizen-scheme-icon" style={{ color: scheme.color, background: `${scheme.color}22` }}>
                   {scheme.icon}

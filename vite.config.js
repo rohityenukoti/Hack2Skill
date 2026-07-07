@@ -1,15 +1,13 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => ({
   plugins: [react()],
-  // GitHub Pages only allows / or /docs as publish folders (not /dist)
-  base: command === 'build' ? '/Hack2Skill/' : '/',
+  base: command === 'build' && mode === 'ghpages' ? '/Hack2Skill/' : '/',
   build: {
-    outDir: 'docs'
+    outDir: 'dist',
   },
   server: {
-    port: 3000
-  }
-}))
+    port: 3000,
+  },
+}));

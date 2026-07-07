@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userDoc().role == 'admin';
+    }
+
+    function isHealthCenter() {
+      return isSignedIn() && userDoc().role == 'healthcenter';
+    }
+
+    function isCitizen() {
+      return isSignedIn() && userDoc().role == 'citizen';
+    }
+
+    function ownsCenter(centerId) {
+      return isHealthCenter() && userDoc().centerId == centerId;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    match /centers/{centerId} {
+      allow read: if isAdmin() || isCitizen() || ownsCenter(centerId);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || ownsCenter(centerId);
+
+      match /inventory/{itemId} {
+        allow read: if isAdmin() || isCitizen() || ownsCenter(centerId);
+        allow write: if isAdmin() || ownsCenter(centerId);
+      }
+
+      match /feedback/{feedbackId} {
+        allow read: if isAdmin() || ownsCenter(centerId);
+        allow create: if isCitizen() || isAdmin();
+        allow update, delete: if isAdmin();
+      }
+    }
+  }
+}

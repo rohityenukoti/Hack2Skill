@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Save, Plus, Minus, UserCheck, Stethoscope, Bed, TrendingUp, AlertTriangle, Activity } from 'lucide-react';
 import { subscribeToInventory, updateCenterDetails, updateInventoryItem } from '../services/firebase';
 
-export default function PHCPortal({ centers, activeCenterId, onCenterChange }) {
-  const [selectedCenterId, setSelectedCenterId] = useState(activeCenterId || centers[0]?.id || "");
+export default function PHCPortal({ centers, activeCenterId, onCenterChange, lockedCenterId }) {
+  const [selectedCenterId, setSelectedCenterId] = useState(lockedCenterId || activeCenterId || centers[0]?.id || "");
   const [inventory, setInventory] = useState([]);
   const [doctorsPresent, setDoctorsPresent] = useState(0);
   const [bedsOccupied, setBedsOccupied] = useState(0);
@@ -88,11 +88,15 @@ export default function PHCPortal({ centers, activeCenterId, onCenterChange }) {
         
         <div className="controls-row">
           <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>Managing Facility:</label>
-          <select value={selectedCenterId} onChange={handleCenterSelect} style={{ width: '220px' }}>
-            {centers.map(c => (
-              <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
-            ))}
-          </select>
+          {lockedCenterId ? (
+            <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{activeCenter?.name}</span>
+          ) : (
+            <select value={selectedCenterId} onChange={handleCenterSelect} style={{ width: '220px' }}>
+              {centers.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 

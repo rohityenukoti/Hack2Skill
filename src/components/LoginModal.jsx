@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import { Shield, Hospital, Heart, X, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import {
+  signInAdmin,
+  signInHealthCenter,
+  signInCitizen,
+  getDemoCredentials,
+} from '../services/auth';
 
 const ROLE_CONFIG = {
   admin: {
@@ -9,10 +15,10 @@ const ROLE_CONFIG = {
     color: '#0b4c8c',
     glow: 'rgba(11, 76, 140, 0.15)',
     fields: [
-      { name: 'districtId', label: 'District ID', placeholder: 'e.g. DHARWAD-01', type: 'text' },
-      { name: 'password', label: 'Password', placeholder: 'Enter admin password', type: 'password' }
+      { name: 'email', label: 'Email', placeholder: 'admin@dharwad.demo', type: 'email' },
+      { name: 'password', label: 'Password', placeholder: 'Enter admin password', type: 'password' },
     ],
-    buttonText: 'Access District Dashboard'
+    buttonText: 'Access District Dashboard',
   },
   healthcenter: {
     title: 'Health Center Login',
@@ -21,28 +27,29 @@ const ROLE_CONFIG = {
     color: '#15803d',
     glow: 'rgba(21, 128, 61, 0.15)',
     fields: [
-      { name: 'centerCode', label: 'Center Code', placeholder: 'e.g. PHC-NARENDRA', type: 'text' },
-      { name: 'staffPin', label: 'Staff PIN', placeholder: 'Enter 4-digit PIN', type: 'password' }
+      { name: 'email', label: 'Staff Email', placeholder: 'phc-narendra@dharwad.demo', type: 'email' },
+      { name: 'password', label: 'Staff PIN / Password', placeholder: 'Enter password', type: 'password' },
     ],
-    buttonText: 'Access Health Center Portal'
+    buttonText: 'Access Health Center Portal',
   },
   citizen: {
-    title: 'Citizen Login',
+    title: 'Citizen Access',
     subtitle: 'Public Health Services',
     icon: <Heart size={32} />,
     color: '#d97706',
     glow: 'rgba(217, 119, 6, 0.15)',
-    fields: [
-      { name: 'mobile', label: 'Mobile Number', placeholder: 'Enter 10-digit number', type: 'tel' },
-      { name: 'otp', label: 'OTP', placeholder: 'Enter OTP (any 4 digits)', type: 'text' }
-    ],
-    buttonText: 'Access Citizen Portal'
-  }
+    fields: [],
+    buttonText: 'Continue as Citizen',
+  },
 };
 
 export default function LoginModal({ role, onClose, onLoginSuccess }) {
-  const [formData, setFormData] = useState({});
-  const [showPassword, setShowPassword] = useState({});
+  const demoCreds = getDemoCredentials();
+  const [formData, setFormData] = useState({
+    email: role === 'admin' ? demoCreds.admin.email : '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -50,42 +57,50 @@ export default function LoginModal({ role, onClose, onLoginSuccess }) {
   if (!config) return null;
 
   const handleChange = (fieldName, value) => {
-    setFormData(prev => ({ ...prev, [fieldName]: value }));
+    setFormData((prev) => ({ ...prev, [fieldName]: value }));
     setError('');
-  };
-
-  const togglePasswordVisibility = (fieldName) => {
-    setShowPassword(prev => ({ ...prev, [fieldName]: !prev[fieldName] }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Basic validation
-    const emptyFields = config.fields.filter(f => !formData[f.name]?.trim());
-    if (emptyFields.length > 0) {
-      setError(`Please fill in all fields`);
-      return;
-    }
-
     setIsLoading(true);
-    
-    // Simulate authentication delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setIsLoading(false);
-    onLoginSuccess(role, formData);
+    setError('');
+
+    try {
+      let user;
+      if (role === 'admin') {
+        if (!formData.email?.trim() || !formData.password?.trim()) {
+          setError('Please fill in all fields');
+          setIsLoading(false);
+          return;
+        }
+        user = await signInAdmin(formData.email.trim(), formData.password);
+      } else if (role === 'healthcenter') {
+        if (!formData.email?.trim() || !formData.password?.trim()) {
+          setError('Please fill in all fields');
+          setIsLoading(false);
+          return;
+        }
+        user = await signInHealthCenter(formData.email.trim(), formData.password);
+      } else if (role === 'citizen') {
+        user = await signInCitizen();
+      }
+
+      onLoginSuccess(role, user);
+    } catch (err) {
+      setError(err.message || 'Authentication failed. Check credentials or Firebase setup.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="login-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="login-modal" style={{ '--role-color': config.color, '--role-glow': config.glow }}>
-        {/* Close Button */}
         <button className="login-modal-close" onClick={onClose}>
           <X size={20} />
         </button>
 
-        {/* Header */}
         <div className="login-modal-header">
           <div className="login-modal-icon" style={{ color: config.color, background: config.glow }}>
             {config.icon}
@@ -94,36 +109,33 @@ export default function LoginModal({ role, onClose, onLoginSuccess }) {
           <p className="login-modal-subtitle">{config.subtitle}</p>
         </div>
 
-        {/* Form */}
         <form className="login-modal-form" onSubmit={handleSubmit}>
           {config.fields.map((field) => (
             <div key={field.name} className="login-field">
               <label className="login-field-label">{field.label}</label>
               <div className="login-field-input-wrapper">
                 <input
-                  type={field.type === 'password' && showPassword[field.name] ? 'text' : field.type}
+                  type={field.type === 'password' && showPassword ? 'text' : field.type}
                   placeholder={field.placeholder}
                   value={formData[field.name] || ''}
                   onChange={(e) => handleChange(field.name, e.target.value)}
                   className="login-field-input"
-                  autoComplete="off"
+                  autoComplete={field.type === 'password' ? 'current-password' : 'email'}
                 />
                 {field.type === 'password' && (
                   <button
                     type="button"
                     className="login-field-toggle"
-                    onClick={() => togglePasswordVisibility(field.name)}
+                    onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword[field.name] ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 )}
               </div>
             </div>
           ))}
 
-          {error && (
-            <p className="login-error">{error}</p>
-          )}
+          {error && <p className="login-error">{error}</p>}
 
           <button
             type="submit"
@@ -145,9 +157,10 @@ export default function LoginModal({ role, onClose, onLoginSuccess }) {
           </button>
         </form>
 
-        {/* Demo hint */}
         <p className="login-demo-hint">
-          🔓 Demo Mode: Enter any credentials to proceed
+          {role === 'citizen'
+            ? 'Anonymous Firebase Auth — no personal data required'
+            : 'Demo: admin@dharwad.demo / Admin@123456 · phc-narendra@dharwad.demo / Staff@123456'}
         </p>
       </div>
     </div>

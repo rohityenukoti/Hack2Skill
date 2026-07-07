@@ -1,5 +1,8 @@
 node_modules
+functions/node_modules
+dist
 .DS_Store
 *.local
 .env
 .env.*
+!.env.example

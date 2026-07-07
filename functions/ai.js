@@ -1,10 +1,20 @@
-import {
-  callAnalyzeDistrict,
-  callParseVoiceReport,
-  isCloudFunctionsAvailable,
-} from './api';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-function getSimulatedInsights(centers, inventories) {
+const GEMINI_MODEL = 'gemini-2.0-flash';
+
+function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenerativeAI(apiKey);
+}
+
+function extractJson(text) {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('No JSON found in model response');
+  return JSON.parse(jsonMatch[0]);
+}
+
+export function getSimulatedInsights(centers, inventories) {
   const alerts = [];
   const forecasting = [];
   const redistributions = [];
@@ -66,7 +76,7 @@ function getSimulatedInsights(centers, inventories) {
         centerId: center.id,
         centerName: center.name,
         severity: 'high',
-        interventionBrief: `${center.name} requires immediate district intervention.`,
+        interventionBrief: `${center.name} requires immediate district intervention: zero doctor attendance and/or critical resource shortages.`,
       });
     }
   });
@@ -118,6 +128,81 @@ function getSimulatedInsights(centers, inventories) {
   return { alerts, forecasting, redistributions, underperformingCenters, isMock: true };
 }
 
+export async function analyzeDistrictData(centers, inventories, trendSummary = null) {
+  const client = getGeminiClient();
+  if (!client) {
+    return getSimulatedInsights(centers, inventories);
+  }
+
+  const dataContext = {
+    centers: centers.map((c) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      beds: c.beds,
+      doctors: c.doctors,
+      footfall: c.footfall,
+      status: c.status,
+    })),
+    inventories,
+    trendSummary,
+  };
+
+  const model = client.getGenerativeModel({
+    model: GEMINI_MODEL,
+    generationConfig: { responseMimeType: 'application/json' },
+  });
+
+  const prompt = `You are an expert AI healthcare supply chain manager for rural Indian PHCs and CHCs in Dharwad district.
+
+Analyze this real-time district data:
+${JSON.stringify(dataContext, null, 2)}
+
+Return JSON with:
+- alerts: array of { type: "critical"|"warning", title, message, centerId }
+- forecasting: array of { centerName, itemName, stock, dailyUsage, daysRemaining, forecastStatus: "stable"|"warning"|"critical" }
+- redistributions: array of { itemName, fromId, fromName, toId, toName, quantity, urgency: "High"|"Medium", distanceEstimate, reason }
+- underperformingCenters: array of { centerId, centerName, severity: "high"|"medium", interventionBrief } — plain-language briefs for district administrators on centers needing intervention`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const parsed = JSON.parse(result.response.text());
+    parsed.isMock = false;
+    return parsed;
+  } catch (error) {
+    console.error('Gemini analyzeDistrict error:', error);
+    return getSimulatedInsights(centers, inventories);
+  }
+}
+
+export async function parseVoiceTranscript(transcript, centerName) {
+  const client = getGeminiClient();
+  if (!client) {
+    return parseVoiceFallback(transcript, centerName);
+  }
+
+  const model = client.getGenerativeModel({
+    model: GEMINI_MODEL,
+    generationConfig: { responseMimeType: 'application/json' },
+  });
+
+  const prompt = `You are an AI intake assistant for rural health centers in India. A worker at "${centerName}" submitted this speech transcript (Hindi, Kannada, Telugu, Tamil, or Hinglish):
+
+"${transcript}"
+
+Extract database updates for medicine inventory, doctor attendance, or bed occupancy.
+
+Return JSON: { success: boolean, operation: "update"|"staff"|"bed"|"unknown", itemName: string, quantity: number, confidence: 0-1, detectedText: string, translatedText: string }`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    return JSON.parse(result.response.text());
+  } catch (error) {
+    console.error('Gemini parseVoice error:', error);
+    return parseVoiceFallback(transcript, centerName);
+  }
+}
+
 function parseVoiceFallback(transcript, centerName) {
   const text = transcript.toLowerCase();
   let itemName = '';
@@ -147,38 +232,6 @@ function parseVoiceFallback(transcript, centerName) {
   };
 }
 
-export function isAiBackendLive() {
-  return isCloudFunctionsAvailable();
+export function parseVoiceFallbackExport(transcript, centerName) {
+  return parseVoiceFallback(transcript, centerName);
 }
-
-export async function generateForecastingAndRedistribution(centers, inventories) {
-  if (isCloudFunctionsAvailable()) {
-    try {
-      const result = await callAnalyzeDistrict(centers, inventories);
-      if (result) return result;
-    } catch (error) {
-      console.error('Cloud Function analyzeDistrict failed, using local simulation:', error);
-    }
-  }
-
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(getSimulatedInsights(centers, inventories)), 800);
-  });
-}
-
-export async function parseVoiceInput(transcript, centerName) {
-  if (isCloudFunctionsAvailable()) {
-    try {
-      const result = await callParseVoiceReport(transcript, centerName);
-      if (result) return result;
-    } catch (error) {
-      console.error('Cloud Function parseVoiceReport failed, using local fallback:', error);
-    }
-  }
-
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(parseVoiceFallback(transcript, centerName)), 600);
-  });
-}
-
-export { getSimulatedInsights };

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, RefreshCw, AlertOctagon, TrendingUp, AlertTriangle, ArrowRightLeft, Users, ShieldAlert, Check, Activity } from 'lucide-react';
+import { Sparkles, RefreshCw, AlertOctagon, TrendingUp, AlertTriangle, ArrowRightLeft, Users, ShieldAlert, Check, Activity, Database } from 'lucide-react';
 import InteractiveMap from './InteractiveMap';
 import { generateForecastingAndRedistribution } from '../services/gemini';
 import { subscribeToInventory, updateInventoryItem } from '../services/firebase';
+import { callSyncToBigQuery, isCloudFunctionsAvailable } from '../services/api';
 
 export default function AdminDashboard({ centers }) {
   const [inventories, setInventories] = useState({});
@@ -10,6 +11,7 @@ export default function AdminDashboard({ centers }) {
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [executingTransferId, setExecutingTransferId] = useState(null);
+  const [bqSyncStatus, setBqSyncStatus] = useState('');
 
   // Subscribe to all center inventories
   useEffect(() => {
@@ -111,6 +113,20 @@ export default function AdminDashboard({ centers }) {
     }
   };
 
+  const handleSyncBigQuery = async () => {
+    if (!isCloudFunctionsAvailable()) {
+      setBqSyncStatus('Cloud Functions unavailable');
+      return;
+    }
+    setBqSyncStatus('Syncing to BigQuery...');
+    try {
+      const result = await callSyncToBigQuery();
+      setBqSyncStatus(`Synced ${result.centersSynced} centers, ${result.inventorySynced} inventory rows`);
+    } catch (err) {
+      setBqSyncStatus(err.message || 'BigQuery sync failed');
+    }
+  };
+
   return (
     <div className="fade-in">
       {/* Top Header */}
@@ -137,7 +153,19 @@ export default function AdminDashboard({ centers }) {
             </>
           )}
         </button>
+
+        <button
+          className="btn-secondary"
+          onClick={handleSyncBigQuery}
+          style={{ marginLeft: '0.5rem' }}
+        >
+          <Database size={16} />
+          Sync to BigQuery
+        </button>
       </div>
+      {bqSyncStatus && (
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{bqSyncStatus}</p>
+      )}
 
       {/* KPI Cards Grid */}
       <div className="kpi-grid">
@@ -250,6 +278,29 @@ export default function AdminDashboard({ centers }) {
                             </span>
                           </div>
                           <p className="insight-text">{alert.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Underperforming Centers */}
+                {aiData.underperformingCenters && aiData.underperformingCenters.length > 0 && (
+                  <div>
+                    <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '1rem 0 0.5rem 0', textTransform: 'uppercase' }}>
+                      Underperforming Centers — Intervention Briefs
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {aiData.underperformingCenters.map((item, idx) => (
+                        <div key={idx} className="insight-card critical-insight">
+                          <div className="insight-card-header">
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <ShieldAlert size={14} />
+                              {item.centerName}
+                            </span>
+                            <span className="badge critical" style={{ fontSize: '0.65rem' }}>{item.severity}</span>
+                          </div>
+                          <p className="insight-text">{item.interventionBrief}</p>
                         </div>
                       ))}
                     </div>
