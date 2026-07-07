@@ -487,6 +487,78 @@ export default function AdminDashboard({ centers }) {
         )}
       </div>
 
+      {/* Underperforming & Bottlenecks Panel */}
+      <div className="glass-card" ref={interventionsSectionRef}>
+        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--status-critical)' }}>
+          <AlertOctagon size={20} />
+          Facilities Requiring District Intervention
+        </h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+          Below is a real-time list of health centers flagged for operational bottlenecks (medicine stock-outs, staff absences, or overcapacity).
+        </p>
+
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Center Name</th>
+                <th>Type</th>
+                <th>Staffing Status</th>
+                <th>Bed Load</th>
+                <th>Pharmacy Stockouts</th>
+                <th>Current Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {centers.map(center => {
+                const centerInv = inventories[center.id] || [];
+                const criticalItems = centerInv.filter(i => i.stock === 0);
+                const hasDoctorAbsence = center.doctors.present === 0;
+                const isOvercapacity = center.beds.occupied / center.beds.total >= 0.9;
+                
+                if (center.status === 'normal') return null;
+
+                return (
+                  <tr key={center.id}>
+                    <td style={{ fontWeight: 600 }}>{center.name}</td>
+                    <td>{center.type}</td>
+                    <td>
+                      <span style={{ color: hasDoctorAbsence ? 'var(--status-critical)' : 'inherit', fontWeight: hasDoctorAbsence ? 600 : 'normal' }}>
+                        {center.doctors.present} of {center.doctors.total} present
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ color: isOvercapacity ? 'var(--status-critical)' : 'inherit', fontWeight: isOvercapacity ? 600 : 'normal' }}>
+                        {center.beds.occupied}/{center.beds.total} occupied
+                      </span>
+                    </td>
+                    <td>
+                      {criticalItems.length > 0 ? (
+                        <span style={{ color: 'var(--status-critical)', fontWeight: 600 }}>
+                          {criticalItems.map(i => i.name.split(' ')[0]).join(', ')} (0 stock)
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>None</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`badge ${center.status}`}>{center.status}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {centers.filter(c => c.status !== 'normal').length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1.5rem' }}>
+                    ✔ All health centers are operating under normal parameters. No active intervention flagged.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Citizen Feedback */}
       <div className="glass-card admin-feedback-section">
         <div className="admin-feedback-header">
@@ -590,78 +662,6 @@ export default function AdminDashboard({ centers }) {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Underperforming & Bottlenecks Panel */}
-      <div className="glass-card" ref={interventionsSectionRef}>
-        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--status-critical)' }}>
-          <AlertOctagon size={20} />
-          Facilities Requiring District Intervention
-        </h3>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-          Below is a real-time list of health centers flagged for operational bottlenecks (medicine stock-outs, staff absences, or overcapacity).
-        </p>
-
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Center Name</th>
-                <th>Type</th>
-                <th>Staffing Status</th>
-                <th>Bed Load</th>
-                <th>Pharmacy Stockouts</th>
-                <th>Current Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {centers.map(center => {
-                const centerInv = inventories[center.id] || [];
-                const criticalItems = centerInv.filter(i => i.stock === 0);
-                const hasDoctorAbsence = center.doctors.present === 0;
-                const isOvercapacity = center.beds.occupied / center.beds.total >= 0.9;
-                
-                if (center.status === 'normal') return null;
-
-                return (
-                  <tr key={center.id}>
-                    <td style={{ fontWeight: 600 }}>{center.name}</td>
-                    <td>{center.type}</td>
-                    <td>
-                      <span style={{ color: hasDoctorAbsence ? 'var(--status-critical)' : 'inherit', fontWeight: hasDoctorAbsence ? 600 : 'normal' }}>
-                        {center.doctors.present} of {center.doctors.total} present
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ color: isOvercapacity ? 'var(--status-critical)' : 'inherit', fontWeight: isOvercapacity ? 600 : 'normal' }}>
-                        {center.beds.occupied}/{center.beds.total} occupied
-                      </span>
-                    </td>
-                    <td>
-                      {criticalItems.length > 0 ? (
-                        <span style={{ color: 'var(--status-critical)', fontWeight: 600 }}>
-                          {criticalItems.map(i => i.name.split(' ')[0]).join(', ')} (0 stock)
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>None</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`badge ${center.status}`}>{center.status}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {centers.filter(c => c.status !== 'normal').length === 0 && (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1.5rem' }}>
-                    ✔ All health centers are operating under normal parameters. No active intervention flagged.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );
