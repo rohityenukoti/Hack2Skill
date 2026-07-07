@@ -1,5 +1,6 @@
 import { httpsCallable } from 'firebase/functions';
 import { getFirebaseFunctions, getFirebaseInitStatus, isFirebaseLive } from './firebaseApp';
+import { ensureCallableAuth } from './auth';
 
 function getCallable(name) {
   const functions = getFirebaseFunctions();
@@ -31,6 +32,7 @@ export async function callTranscribeAudio(audioBase64, encoding = 'WEBM_OPUS', s
 export async function callTranslateText(text, targetLanguage = 'hi') {
   const fn = getCallable('translateTextFn');
   if (!fn || !isFirebaseLive()) return null;
+  await ensureCallableAuth();
   const result = await fn({ text, targetLanguage });
   return result.data;
 }
@@ -38,6 +40,7 @@ export async function callTranslateText(text, targetLanguage = 'hi') {
 export async function callTranslateBatch(texts, targetLanguage = 'hi') {
   const fn = getCallable('translateTextFn');
   if (!fn || !isFirebaseLive()) return null;
+  await ensureCallableAuth();
   const result = await fn({ texts, targetLanguage });
   return result.data;
 }

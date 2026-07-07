@@ -161,7 +161,7 @@ export default function App() {
     );
   }
 
-  if (currentView === 'home' && !authUser) {
+  if (currentView === 'home' && !authUser?.role) {
     return (
       <>
         <HomePage onLogin={handleOpenLogin} />

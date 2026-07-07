@@ -17,6 +17,7 @@ const DEMO_USERS = {
 
 let mockAuthState = null;
 const mockListeners = new Set();
+let callableAuthPromise = null;
 
 function notifyMockListeners() {
   mockListeners.forEach((cb) => cb(mockAuthState));
@@ -72,6 +73,26 @@ export function subscribeToAuth(callback) {
   callback(mockAuthState);
   mockListeners.add(callback);
   return () => mockListeners.delete(callback);
+}
+
+export async function ensureCallableAuth() {
+  const auth = getFirebaseAuth();
+  if (!auth || !isFirebaseLive()) return false;
+  if (auth.currentUser) return true;
+
+  if (!callableAuthPromise) {
+    callableAuthPromise = signInAnonymously(auth)
+      .then(() => true)
+      .catch((error) => {
+        console.error('Anonymous auth for Cloud Functions failed:', error);
+        return false;
+      })
+      .finally(() => {
+        callableAuthPromise = null;
+      });
+  }
+
+  return callableAuthPromise;
 }
 
 export async function signInAdmin(email, password) {
