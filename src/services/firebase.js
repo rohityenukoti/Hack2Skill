@@ -3,11 +3,13 @@ import {
   doc,
   setDoc,
   updateDoc,
+  getDoc,
   onSnapshot,
   getDocs,
   query,
   addDoc,
   orderBy,
+  where,
 } from 'firebase/firestore';
 import { MOCK_CENTERS, MOCK_INVENTORY, MOCK_FEEDBACK } from '../utils/mockData';
 import { getDb, isFirebaseLive } from './firebaseApp';
@@ -20,6 +22,7 @@ const useRealFirebase = isFirebaseLive();
 const LOCAL_CENTERS_KEY = 'smart_health_centers';
 const LOCAL_INVENTORY_KEY = 'smart_health_inventory';
 const LOCAL_FEEDBACK_KEY = 'smart_health_feedback';
+const LOCAL_TRANSFERS_KEY = 'smart_health_transfers';
 
 if (!localStorage.getItem(LOCAL_CENTERS_KEY)) {
   localStorage.setItem(LOCAL_CENTERS_KEY, JSON.stringify(MOCK_CENTERS));
@@ -324,6 +327,7 @@ export function resetDatabase() {
   localStorage.setItem(LOCAL_CENTERS_KEY, JSON.stringify(MOCK_CENTERS));
   localStorage.setItem(LOCAL_INVENTORY_KEY, JSON.stringify(MOCK_INVENTORY));
   localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(MOCK_FEEDBACK));
+  localStorage.setItem(LOCAL_TRANSFERS_KEY, JSON.stringify([]));
   triggerLocalUpdate();
 }
 
@@ -394,6 +398,216 @@ export function subscribeToFeedback(centerId, onUpdate) {
   }
   onUpdate(getFeedbackForCenter(centerId));
   const fetchLocal = () => onUpdate(getFeedbackForCenter(centerId));
+  localListeners.add(fetchLocal);
+  return () => localListeners.delete(fetchLocal);
+}
+
+function getLocalTransfers() {
+  return JSON.parse(localStorage.getItem(LOCAL_TRANSFERS_KEY) || '[]');
+}
+
+function saveLocalTransfers(transfers) {
+  localStorage.setItem(LOCAL_TRANSFERS_KEY, JSON.stringify(transfers));
+}
+
+function mirrorTransfersToLocal(transfers) {
+  saveLocalTransfers(transfers);
+}
+
+function finalizeTransferIfBothConfirmed(transfer) {
+  if (transfer.donorConfirmed && transfer.recipientConfirmed) {
+    return {
+      ...transfer,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+    };
+  }
+  return transfer;
+}
+
+export async function notifyHealthCentersForTransfer(transfer) {
+  const entry = {
+    itemName: transfer.itemName,
+    fromId: transfer.fromId,
+    fromName: transfer.fromName,
+    toId: transfer.toId,
+    toName: transfer.toName,
+    quantity: transfer.quantity,
+    urgency: transfer.urgency,
+    distanceEstimate: transfer.distanceEstimate,
+    reason: transfer.reason || '',
+    status: 'notified',
+    donorConfirmed: false,
+    recipientConfirmed: false,
+    notifiedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    source: 'admin',
+  };
+
+  if (useRealFirebase && db) {
+    try {
+      const docRef = await addDoc(collection(db, 'transfers'), entry);
+      const saved = { id: docRef.id, ...entry };
+      const local = getLocalTransfers();
+      mirrorTransfersToLocal([saved, ...local]);
+      return saved;
+    } catch (e) {
+      console.error('Firestore notifyHealthCentersForTransfer failed:', e);
+    }
+  }
+
+  const saved = { id: `tr-${Date.now()}`, ...entry };
+  const local = getLocalTransfers();
+  saveLocalTransfers([saved, ...local]);
+  triggerLocalUpdate();
+  return saved;
+}
+
+export async function confirmTransferCompletion(transferId, centerId) {
+  if (useRealFirebase && db) {
+    try {
+      const transferRef = doc(db, 'transfers', transferId);
+      const snapshot = await getDoc(transferRef);
+      if (!snapshot.exists()) return false;
+      const existing = snapshot.data();
+
+      const isDonor = existing.fromId === centerId;
+      const isRecipient = existing.toId === centerId;
+      if (!isDonor && !isRecipient) return false;
+
+      const donorConfirmed = isDonor ? true : existing.donorConfirmed;
+      const recipientConfirmed = isRecipient ? true : existing.recipientConfirmed;
+      const merged = finalizeTransferIfBothConfirmed({
+        ...existing,
+        donorConfirmed,
+        recipientConfirmed,
+      });
+
+      const updates = {
+        donorConfirmed,
+        recipientConfirmed,
+        updatedAt: new Date().toISOString(),
+        ...(merged.status === 'completed'
+          ? { status: 'completed', completedAt: merged.completedAt }
+          : {}),
+      };
+      await updateDoc(transferRef, updates);
+
+      const local = getLocalTransfers().map((t) =>
+        t.id === transferId ? { ...t, ...updates } : t
+      );
+      mirrorTransfersToLocal(local);
+      return true;
+    } catch (e) {
+      console.error('Firestore confirmTransferCompletion failed:', e);
+    }
+  }
+
+  const local = getLocalTransfers();
+  const index = local.findIndex((t) => t.id === transferId);
+  if (index === -1) return false;
+
+  const existing = local[index];
+  const isDonor = existing.fromId === centerId;
+  const isRecipient = existing.toId === centerId;
+  if (!isDonor && !isRecipient) return false;
+
+  const updated = finalizeTransferIfBothConfirmed({
+    ...existing,
+    donorConfirmed: isDonor ? true : existing.donorConfirmed,
+    recipientConfirmed: isRecipient ? true : existing.recipientConfirmed,
+    updatedAt: new Date().toISOString(),
+  });
+  local[index] = updated;
+  saveLocalTransfers(local);
+  triggerLocalUpdate();
+  return true;
+}
+
+export function subscribeToTransfers(onUpdate) {
+  if (useRealFirebase && db) {
+    const q = query(collection(db, 'transfers'), orderBy('createdAt', 'desc'));
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const items = [];
+        snapshot.forEach((d) => items.push({ id: d.id, ...d.data() }));
+        mirrorTransfersToLocal(items);
+        onUpdate(items);
+      },
+      (error) => {
+        console.error('subscribeToTransfers failed:', error);
+        onUpdate(getLocalTransfers());
+      }
+    );
+  }
+  return subscribeToTransfersLocal(onUpdate);
+}
+
+function subscribeToTransfersLocal(onUpdate) {
+  const fetchLocal = () => onUpdate(getLocalTransfers());
+  fetchLocal();
+  localListeners.add(fetchLocal);
+  return () => localListeners.delete(fetchLocal);
+}
+
+export function subscribeToCenterTransfers(centerId, onUpdate) {
+  if (useRealFirebase && db) {
+    const fromQuery = query(
+      collection(db, 'transfers'),
+      where('fromId', '==', centerId),
+      orderBy('createdAt', 'desc')
+    );
+    const toQuery = query(
+      collection(db, 'transfers'),
+      where('toId', '==', centerId),
+      orderBy('createdAt', 'desc')
+    );
+
+    let fromItems = [];
+    let toItems = [];
+
+    const emit = () => {
+      const merged = new Map();
+      [...fromItems, ...toItems].forEach((item) => merged.set(item.id, item));
+      onUpdate(
+        Array.from(merged.values()).sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        )
+      );
+    };
+
+    const unsubFrom = onSnapshot(fromQuery, (snapshot) => {
+      fromItems = [];
+      snapshot.forEach((d) => fromItems.push({ id: d.id, ...d.data() }));
+      emit();
+    }, (error) => {
+      console.error(`subscribeToCenterTransfers from(${centerId}) failed:`, error);
+      onUpdate(getLocalTransfers().filter((t) => t.fromId === centerId || t.toId === centerId));
+    });
+
+    const unsubTo = onSnapshot(toQuery, (snapshot) => {
+      toItems = [];
+      snapshot.forEach((d) => toItems.push({ id: d.id, ...d.data() }));
+      emit();
+    }, (error) => {
+      console.error(`subscribeToCenterTransfers to(${centerId}) failed:`, error);
+      onUpdate(getLocalTransfers().filter((t) => t.fromId === centerId || t.toId === centerId));
+    });
+
+    return () => {
+      unsubFrom();
+      unsubTo();
+    };
+  }
+  return subscribeToCenterTransfersLocal(centerId, onUpdate);
+}
+
+function subscribeToCenterTransfersLocal(centerId, onUpdate) {
+  const fetchLocal = () => {
+    onUpdate(getLocalTransfers().filter((t) => t.fromId === centerId || t.toId === centerId));
+  };
+  fetchLocal();
   localListeners.add(fetchLocal);
   return () => localListeners.delete(fetchLocal);
 }

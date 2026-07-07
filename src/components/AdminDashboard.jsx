@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Sparkles, RefreshCw, AlertOctagon, TrendingUp, AlertTriangle, ArrowRightLeft, Users, ShieldAlert, Check, Activity, Database, MessageSquare, Star } from 'lucide-react';
+import { Sparkles, RefreshCw, AlertOctagon, TrendingUp, AlertTriangle, ArrowRightLeft, Users, ShieldAlert, Bell, CheckCircle, Activity, Database, MessageSquare, Star } from 'lucide-react';
 import InteractiveMap from './InteractiveMap';
 import { generateForecastingAndRedistribution, summarizeCitizenFeedback } from '../services/gemini';
-import { subscribeToInventory, subscribeToAllFeedback, updateInventoryItem } from '../services/firebase';
+import { subscribeToInventory, subscribeToAllFeedback, subscribeToTransfers, notifyHealthCentersForTransfer } from '../services/firebase';
 import { callSyncToBigQuery, isCloudFunctionsAvailable } from '../services/api';
 
 function groupAlertsByCenter(alerts, centers) {
@@ -40,6 +40,7 @@ export default function AdminDashboard({ centers }) {
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [executingTransferId, setExecutingTransferId] = useState(null);
+  const [transfers, setTransfers] = useState([]);
   const [bqSyncStatus, setBqSyncStatus] = useState('');
   const [feedbackByCenter, setFeedbackByCenter] = useState({});
   const [feedbackSummaries, setFeedbackSummaries] = useState(null);
@@ -74,6 +75,11 @@ export default function AdminDashboard({ centers }) {
     });
     return () => unsubscribes();
   }, [centers]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToTransfers(setTransfers);
+    return () => unsubscribe();
+  }, []);
 
   const allFeedback = useMemo(() => {
     return centers.flatMap((center) => {
@@ -145,47 +151,33 @@ export default function AdminDashboard({ centers }) {
     handleRunAI();
   }, [centers, inventories, handleRunAI]);
 
-  const handleExecuteRedistribution = async (idx, transfer) => {
+  const handleNotifyHealthCenters = async (idx, transfer) => {
     setExecutingTransferId(idx);
     try {
-      const donorInv = inventories[transfer.fromId] || [];
-      const recipientInv = inventories[transfer.toId] || [];
-      
-      const donorItem = donorInv.find(i => i.name === transfer.itemName);
-      const recipientItem = recipientInv.find(i => i.name === transfer.itemName);
+      await notifyHealthCentersForTransfer(transfer);
 
-      if (donorItem && recipientItem) {
-        // 1. Subtract from donor
-        await updateInventoryItem(transfer.fromId, transfer.itemName, {
-          stock: Math.max(0, donorItem.stock - transfer.quantity)
-        });
-        // 2. Add to recipient
-        await updateInventoryItem(transfer.toId, transfer.itemName, {
-          stock: recipientItem.stock + transfer.quantity
-        });
-
-        // 3. Mark transfer as executed in local UI state
-        setAiData(prev => {
-          if (!prev) return null;
-          const updatedRedist = [...prev.redistributions];
-          updatedRedist.splice(idx, 1); // remove completed transfer
-          
-          // Re-generate critical alerts locally
-          const updatedAlerts = prev.alerts.filter(a => !(a.centerId === transfer.toId && a.message.includes(transfer.itemName)));
-          
-          return {
-            ...prev,
-            redistributions: updatedRedist,
-            alerts: updatedAlerts
-          };
-        });
-      }
+      setAiData((prev) => {
+        if (!prev) return null;
+        const updatedRedist = [...prev.redistributions];
+        updatedRedist.splice(idx, 1);
+        return { ...prev, redistributions: updatedRedist };
+      });
     } catch (err) {
-      console.error("Redistribution failed:", err);
+      console.error('Transfer notification failed:', err);
     } finally {
       setExecutingTransferId(null);
     }
   };
+
+  const pendingTransfers = useMemo(
+    () => transfers.filter((t) => t.status === 'notified'),
+    [transfers]
+  );
+
+  const completedTransfers = useMemo(
+    () => transfers.filter((t) => t.status === 'completed'),
+    [transfers]
+  );
 
   const handleSyncBigQuery = async () => {
     if (!isCloudFunctionsAvailable()) {
@@ -206,6 +198,50 @@ export default function AdminDashboard({ centers }) {
     [aiData?.alerts, centers]
   );
 
+  const renderTransferCard = (transfer, idx, { showNotify = false, showStatus = false } = {}) => (
+    <div key={transfer.id || idx} className="insight-card success-insight transfer-item-card">
+      <div className="insight-card-header">
+        <span className="insight-card-label">{transfer.itemName}</span>
+        <span className={`badge ${transfer.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
+          {transfer.urgency}
+        </span>
+      </div>
+      <p className="insight-card-title">
+        {transfer.quantity} units
+      </p>
+      <p className="insight-text transfer-route">
+        <strong>{transfer.fromName}</strong> ➔ <strong>{transfer.toName}</strong>
+        <span className="transfer-distance">{transfer.distanceEstimate}</span>
+      </p>
+      {showStatus && (
+        <p className="transfer-status-line">
+          {transfer.donorConfirmed && transfer.recipientConfirmed
+            ? 'Both centres confirmed'
+            : `${transfer.donorConfirmed ? 'Donor confirmed' : 'Awaiting donor'} · ${transfer.recipientConfirmed ? 'Recipient confirmed' : 'Awaiting recipient'}`}
+        </p>
+      )}
+      {showNotify && (
+        <button
+          className="insight-action-btn"
+          disabled={executingTransferId === idx}
+          onClick={() => handleNotifyHealthCenters(idx, transfer)}
+        >
+          {executingTransferId === idx ? (
+            <>
+              <RefreshCw className="spin" size={10} />
+              Notifying...
+            </>
+          ) : (
+            <>
+              <Bell size={10} />
+              Notify Health Centres
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+
   const renderTransfersPanel = () => {
     if (isLoadingAI) {
       return (
@@ -216,7 +252,7 @@ export default function AdminDashboard({ centers }) {
       );
     }
 
-    if (!aiData) {
+    if (!aiData && pendingTransfers.length === 0 && completedTransfers.length === 0) {
       return (
         <div className="insight-empty-state">
           <Sparkles size={20} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
@@ -225,7 +261,7 @@ export default function AdminDashboard({ centers }) {
       );
     }
 
-    if (!aiData.redistributions?.length) {
+    if (!aiData?.redistributions?.length && pendingTransfers.length === 0 && completedTransfers.length === 0) {
       return (
         <div className="insight-empty-state">
           No redistribution actions needed. Supplies are balanced.
@@ -235,40 +271,40 @@ export default function AdminDashboard({ centers }) {
 
     return (
       <div className="transfer-items-list">
-        {aiData.redistributions.map((redist, idx) => (
-          <div key={idx} className="insight-card success-insight transfer-item-card">
-            <div className="insight-card-header">
-              <span className="insight-card-label">{redist.itemName}</span>
-              <span className={`badge ${redist.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
-                {redist.urgency}
-              </span>
-            </div>
-            <p className="insight-card-title">
-              {redist.quantity} units
-            </p>
-            <p className="insight-text transfer-route">
-              <strong>{redist.fromName}</strong> ➔ <strong>{redist.toName}</strong>
-              <span className="transfer-distance">{redist.distanceEstimate}</span>
-            </p>
-            <button
-              className="insight-action-btn"
-              disabled={executingTransferId === idx}
-              onClick={() => handleExecuteRedistribution(idx, redist)}
-            >
-              {executingTransferId === idx ? (
-                <>
-                  <RefreshCw className="spin" size={10} />
-                  Transferring...
-                </>
-              ) : (
-                <>
-                  <Check size={10} />
-                  Execute
-                </>
-              )}
-            </button>
+        {(aiData?.redistributions || []).map((redist, idx) => renderTransferCard(redist, idx, { showNotify: true }))}
+
+        {pendingTransfers.length > 0 && (
+          <div className="transfer-subsection">
+            <h4 className="transfer-subsection-title">Awaiting Centre Confirmation</h4>
+            {pendingTransfers.map((transfer, idx) => renderTransferCard(transfer, idx, { showStatus: true }))}
           </div>
-        ))}
+        )}
+
+        {completedTransfers.length > 0 && (
+          <div className="transfer-subsection">
+            <h4 className="transfer-subsection-title">
+              <CheckCircle size={14} />
+              Completed Transfers
+            </h4>
+            {completedTransfers.map((transfer, idx) => (
+              <div key={transfer.id || idx} className="insight-card transfer-item-card transfer-completed-card">
+                <div className="insight-card-header">
+                  <span className="insight-card-label">{transfer.itemName}</span>
+                  <span className="badge success" style={{ fontSize: '0.65rem' }}>Completed</span>
+                </div>
+                <p className="insight-card-title">{transfer.quantity} units</p>
+                <p className="insight-text transfer-route">
+                  <strong>{transfer.fromName}</strong> ➔ <strong>{transfer.toName}</strong>
+                </p>
+                {transfer.completedAt && (
+                  <p className="transfer-completed-at">
+                    Completed {new Date(transfer.completedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };

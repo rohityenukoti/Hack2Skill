@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Minus, UserCheck, Stethoscope, Bed, TrendingUp, AlertTriangle, Activity } from 'lucide-react';
-import { subscribeToInventory, updateCenterDetails, updateInventoryItem } from '../services/firebase';
+import { Save, Plus, Minus, UserCheck, Stethoscope, Bed, TrendingUp, AlertTriangle, Activity, Bell, CheckCircle, RefreshCw } from 'lucide-react';
+import { subscribeToInventory, subscribeToCenterTransfers, updateCenterDetails, updateInventoryItem, confirmTransferCompletion } from '../services/firebase';
 
 export default function PHCPortal({ centers, activeCenterId, onCenterChange, lockedCenterId }) {
   const [selectedCenterId, setSelectedCenterId] = useState(lockedCenterId || activeCenterId || centers[0]?.id || "");
@@ -11,6 +11,8 @@ export default function PHCPortal({ centers, activeCenterId, onCenterChange, loc
   const [footfallToday, setFootfallToday] = useState(0);
   const [diagnosticTests, setDiagnosticTests] = useState({});
   const [saveStatus, setSaveStatus] = useState("");
+  const [centerTransfers, setCenterTransfers] = useState([]);
+  const [completingTransferId, setCompletingTransferId] = useState(null);
 
   const activeCenter = centers.find(c => c.id === selectedCenterId) || centers[0];
 
@@ -30,6 +32,14 @@ export default function PHCPortal({ centers, activeCenterId, onCenterChange, loc
       return () => unsubscribe();
     }
   }, [selectedCenterId, activeCenter]);
+
+  useEffect(() => {
+    if (!selectedCenterId) return undefined;
+    const unsubscribe = subscribeToCenterTransfers(selectedCenterId, setCenterTransfers);
+    return () => unsubscribe();
+  }, [selectedCenterId]);
+
+  const pendingTransfers = centerTransfers.filter((t) => t.status === 'notified');
 
   const handleCenterSelect = (e) => {
     const newId = e.target.value;
@@ -78,6 +88,34 @@ export default function PHCPortal({ centers, activeCenterId, onCenterChange, loc
     }
   };
 
+  const handleMarkTransferComplete = async (transfer) => {
+    setCompletingTransferId(transfer.id);
+    try {
+      await confirmTransferCompletion(transfer.id, selectedCenterId);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCompletingTransferId(null);
+    }
+  };
+
+  const renderTransferRole = (transfer) => {
+    if (transfer.fromId === selectedCenterId) {
+      return {
+        role: 'donor',
+        label: 'Send supply',
+        message: `Dispatch ${transfer.quantity} units of ${transfer.itemName} to ${transfer.toName}. Update your stock after the handoff.`,
+        confirmed: transfer.donorConfirmed,
+      };
+    }
+    return {
+      role: 'recipient',
+      label: 'Receive supply',
+      message: `Receive ${transfer.quantity} units of ${transfer.itemName} from ${transfer.fromName}. Update your stock once received.`,
+      confirmed: transfer.recipientConfirmed,
+    };
+  };
+
   return (
     <div className="fade-in">
       <div className="top-bar">
@@ -99,6 +137,64 @@ export default function PHCPortal({ centers, activeCenterId, onCenterChange, loc
           )}
         </div>
       </div>
+
+      {pendingTransfers.length > 0 && (
+        <div className="glass-card transfer-notifications-panel" style={{ marginBottom: '2rem' }}>
+          <h3 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Bell size={20} color="var(--primary)" />
+            District Transfer Notifications
+          </h3>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            The district admin has requested the following supply transfers. Update your pharmacy stock manually, then mark as completed.
+          </p>
+          <div className="transfer-items-list">
+            {pendingTransfers.map((transfer) => {
+              const { role, label, message, confirmed } = renderTransferRole(transfer);
+              const otherConfirmed = role === 'donor' ? transfer.recipientConfirmed : transfer.donorConfirmed;
+              return (
+                <div key={transfer.id} className="insight-card transfer-item-card transfer-notification-card">
+                  <div className="insight-card-header">
+                    <span className="insight-card-label">{transfer.itemName}</span>
+                    <span className={`badge ${transfer.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
+                      {label}
+                    </span>
+                  </div>
+                  <p className="insight-card-title">{transfer.quantity} units</p>
+                  <p className="insight-text" style={{ fontSize: '0.8rem' }}>{message}</p>
+                  <p className="transfer-status-line">
+                    {confirmed
+                      ? `You confirmed · ${otherConfirmed ? 'Other centre confirmed' : 'Awaiting other centre'}`
+                      : `${otherConfirmed ? 'Other centre confirmed · ' : ''}Awaiting your confirmation`}
+                  </p>
+                  <button
+                    type="button"
+                    className="insight-action-btn"
+                    disabled={confirmed || completingTransferId === transfer.id}
+                    onClick={() => handleMarkTransferComplete(transfer)}
+                  >
+                    {completingTransferId === transfer.id ? (
+                      <>
+                        <RefreshCw className="spin" size={10} />
+                        Saving...
+                      </>
+                    ) : confirmed ? (
+                      <>
+                        <CheckCircle size={10} />
+                        Completed
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={10} />
+                        Mark as Completed
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '2rem' }}>
         {/* Left column: Center metrics & Diag audits */}

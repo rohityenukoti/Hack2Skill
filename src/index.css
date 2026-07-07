@@ -595,6 +595,52 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 999px;
 }
 
+.transfer-subsection {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.transfer-subsection-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.transfer-status-line {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0.35rem 0 0.5rem;
+}
+
+.transfer-completed-card {
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.2);
+}
+
+.transfer-completed-at {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0;
+}
+
+.transfer-notifications-panel .transfer-items-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.transfer-notification-card {
+  background: #eff6ff;
+  border: 1px solid rgba(15, 76, 129, 0.12);
+}
+
 /* PHC-grouped alert cards */
 .phc-alerts-grid {
   display: grid;

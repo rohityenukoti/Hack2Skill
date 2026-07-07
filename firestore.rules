@@ -48,5 +48,20 @@ service cloud.firestore {
         allow update, delete: if isAdmin();
       }
     }
+
+    match /transfers/{transferId} {
+      allow read: if isAdmin()
+        || (isHealthCenter() && (
+          resource.data.fromId == userDoc().centerId
+          || resource.data.toId == userDoc().centerId
+        ));
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        || (isHealthCenter() && (
+          resource.data.fromId == userDoc().centerId
+          || resource.data.toId == userDoc().centerId
+        ));
+      allow delete: if isAdmin();
+    }
   }
 }
