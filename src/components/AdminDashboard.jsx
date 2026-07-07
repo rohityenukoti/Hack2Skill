@@ -377,16 +377,18 @@ export default function AdminDashboard({ centers }) {
           )}
         </button>
 
-        <button
-          className="btn-secondary"
-          onClick={handleSyncBigQuery}
-          style={{ marginLeft: '0.5rem' }}
-        >
-          <Database size={16} />
-          Sync to BigQuery
-        </button>
+        {import.meta.env.DEV && (
+          <button
+            className="btn-secondary"
+            onClick={handleSyncBigQuery}
+            style={{ marginLeft: '0.5rem' }}
+          >
+            <Database size={16} />
+            Sync to BigQuery
+          </button>
+        )}
       </div>
-      {bqSyncStatus && (
+      {import.meta.env.DEV && bqSyncStatus && (
         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{bqSyncStatus}</p>
       )}
 

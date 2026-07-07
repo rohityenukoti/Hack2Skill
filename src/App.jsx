@@ -226,7 +226,7 @@ export default function App() {
                 )}
               </div>
             )}
-            {(userRole === 'admin' || userRole === 'healthcenter') && (
+            {import.meta.env.DEV && (userRole === 'admin' || userRole === 'healthcenter') && (
               <button
                 type="button"
                 className="gov-top-bar-devtools"
@@ -314,20 +314,22 @@ export default function App() {
           )}
         </main>
 
-        <DevToolsModal
-          isOpen={showDevTools}
-          onClose={() => setShowDevTools(false)}
-          isLive={isLive}
-          hasAiBackend={hasAiBackend}
-          userRole={userRole}
-          seedStatus={seedStatus}
-          functionsTestStatus={functionsTestStatus}
-          translationTestStatus={translationTestStatus}
-          onTestFunctions={handleTestFunctions}
-          onTestTranslation={handleTestTranslation}
-          onSeedDemo={handleSeedDemo}
-          onResetDb={handleResetDb}
-        />
+        {import.meta.env.DEV && (
+          <DevToolsModal
+            isOpen={showDevTools}
+            onClose={() => setShowDevTools(false)}
+            isLive={isLive}
+            hasAiBackend={hasAiBackend}
+            userRole={userRole}
+            seedStatus={seedStatus}
+            functionsTestStatus={functionsTestStatus}
+            translationTestStatus={translationTestStatus}
+            onTestFunctions={handleTestFunctions}
+            onTestTranslation={handleTestTranslation}
+            onSeedDemo={handleSeedDemo}
+            onResetDb={handleResetDb}
+          />
+        )}
       </div>
     </div>
   );
