@@ -10,7 +10,7 @@ import {
   Filter,
   Phone,
   Heart,
-  ExternalLink,
+  Navigation,
   CheckCircle,
   AlertTriangle,
   Clock,
@@ -42,6 +42,7 @@ const UI_STRINGS = {
   distance: 'Distance',
   diagnosticTests: 'Available Diagnostic Tests',
   rateCenter: 'Rate This Center',
+  getDirections: 'Get Directions',
   noResults: 'No health centers found matching your search.',
   feedbackTitle: 'Share Your Experience',
   feedbackSubtitle: 'Your feedback helps improve healthcare services for everyone in the district.',
@@ -196,6 +197,17 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
       case 'critical': return ui.statusOvercrowded;
       default: return ui.statusUnknown;
     }
+  };
+
+  const openDirections = (center) => {
+    const { coordinates, name, location } = center;
+    let url;
+    if (coordinates?.lat != null && coordinates?.lng != null) {
+      url = `https://www.google.com/maps/dir/?api=1&destination=${coordinates.lat},${coordinates.lng}`;
+    } else {
+      url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, ${location}`)}`;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const getDistanceEstimate = (center) => {
@@ -378,10 +390,22 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
                       ))}
                     </div>
                     <div className="citizen-center-actions">
-                      <button className="btn-primary citizen-action-btn" onClick={() => {
-                        setActiveTab('feedback');
-                        setFeedbackCenter(center.id);
-                      }}>
+                      <button
+                        type="button"
+                        className="btn-secondary citizen-action-btn"
+                        onClick={() => openDirections(center)}
+                      >
+                        <Navigation size={14} />
+                        {ui.getDirections}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-primary citizen-action-btn"
+                        onClick={() => {
+                          setActiveTab('feedback');
+                          setFeedbackCenter(center.id);
+                        }}
+                      >
                         <Star size={14} />
                         {ui.rateCenter}
                       </button>
