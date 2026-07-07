@@ -4,16 +4,64 @@ import { getFirestore } from 'firebase-admin/firestore';
 const bigquery = new BigQuery();
 const DATASET_ID = 'health_ops';
 
+const TABLE_SCHEMAS = {
+  centers_daily: [
+    { name: 'center_id', type: 'STRING' },
+    { name: 'name', type: 'STRING' },
+    { name: 'type', type: 'STRING' },
+    { name: 'status', type: 'STRING' },
+    { name: 'beds_total', type: 'INTEGER' },
+    { name: 'beds_occupied', type: 'INTEGER' },
+    { name: 'doctors_total', type: 'INTEGER' },
+    { name: 'doctors_present', type: 'INTEGER' },
+    { name: 'footfall_today', type: 'INTEGER' },
+    { name: 'footfall_avg', type: 'INTEGER' },
+    { name: 'synced_at', type: 'TIMESTAMP' },
+  ],
+  inventory_daily: [
+    { name: 'center_id', type: 'STRING' },
+    { name: 'item_name', type: 'STRING' },
+    { name: 'category', type: 'STRING' },
+    { name: 'stock', type: 'INTEGER' },
+    { name: 'min_required', type: 'INTEGER' },
+    { name: 'daily_usage', type: 'INTEGER' },
+    { name: 'synced_at', type: 'TIMESTAMP' },
+  ],
+  feedback: [
+    { name: 'center_id', type: 'STRING' },
+    { name: 'rating', type: 'INTEGER' },
+    { name: 'category', type: 'STRING' },
+    { name: 'comment', type: 'STRING' },
+    { name: 'timestamp', type: 'TIMESTAMP' },
+    { name: 'synced_at', type: 'TIMESTAMP' },
+  ],
+};
+
 async function ensureDataset() {
-  const [datasets] = await bigquery.getDatasets();
-  const exists = datasets.some((d) => d.id === DATASET_ID);
+  const dataset = bigquery.dataset(DATASET_ID);
+  const [exists] = await dataset.exists();
   if (!exists) {
     await bigquery.createDataset(DATASET_ID, { location: 'asia-south1' });
   }
+  return dataset;
+}
+
+async function ensureTable(dataset, tableId) {
+  const table = dataset.table(tableId);
+  const [exists] = await table.exists();
+  if (!exists) {
+    await dataset.createTable(tableId, { schema: TABLE_SCHEMAS[tableId] });
+  }
+}
+
+async function insertRows(dataset, tableId, rows) {
+  if (rows.length === 0) return;
+  await ensureTable(dataset, tableId);
+  await dataset.table(tableId).insert(rows);
 }
 
 export async function syncFirestoreToBigQuery() {
-  await ensureDataset();
+  const dataset = await ensureDataset();
   const db = getFirestore();
   const centersSnap = await db.collection('centers').get();
 
@@ -66,53 +114,9 @@ export async function syncFirestoreToBigQuery() {
     });
   }
 
-  const dataset = bigquery.dataset(DATASET_ID);
-
-  if (centersRows.length > 0) {
-    await dataset.table('centers_daily').insert(centersRows).catch(async (err) => {
-      if (err.code === 404) {
-        await dataset.createTable('centers_daily', {
-          schema: [
-            { name: 'center_id', type: 'STRING' },
-            { name: 'name', type: 'STRING' },
-            { name: 'type', type: 'STRING' },
-            { name: 'status', type: 'STRING' },
-            { name: 'beds_total', type: 'INTEGER' },
-            { name: 'beds_occupied', type: 'INTEGER' },
-            { name: 'doctors_total', type: 'INTEGER' },
-            { name: 'doctors_present', type: 'INTEGER' },
-            { name: 'footfall_today', type: 'INTEGER' },
-            { name: 'footfall_avg', type: 'INTEGER' },
-            { name: 'synced_at', type: 'TIMESTAMP' },
-          ],
-        });
-        await dataset.table('centers_daily').insert(centersRows);
-      } else {
-        throw err;
-      }
-    });
-  }
-
-  if (inventoryRows.length > 0) {
-    await dataset.table('inventory_daily').insert(inventoryRows).catch(async (err) => {
-      if (err.code === 404) {
-        await dataset.createTable('inventory_daily', {
-          schema: [
-            { name: 'center_id', type: 'STRING' },
-            { name: 'item_name', type: 'STRING' },
-            { name: 'category', type: 'STRING' },
-            { name: 'stock', type: 'INTEGER' },
-            { name: 'min_required', type: 'INTEGER' },
-            { name: 'daily_usage', type: 'INTEGER' },
-            { name: 'synced_at', type: 'TIMESTAMP' },
-          ],
-        });
-        await dataset.table('inventory_daily').insert(inventoryRows);
-      } else {
-        throw err;
-      }
-    });
-  }
+  await insertRows(dataset, 'centers_daily', centersRows);
+  await insertRows(dataset, 'inventory_daily', inventoryRows);
+  await insertRows(dataset, 'feedback', feedbackRows);
 
   return {
     centersSynced: centersRows.length,
@@ -124,6 +128,11 @@ export async function syncFirestoreToBigQuery() {
 
 export async function getInventoryTrendSummary() {
   try {
+    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+    const dataset = bigquery.dataset(DATASET_ID);
+    const [tableExists] = await dataset.table('inventory_daily').exists();
+    if (!tableExists) return null;
+
     const query = `
       SELECT
         center_id,
@@ -131,7 +140,7 @@ export async function getInventoryTrendSummary() {
         AVG(stock) AS avg_stock,
         AVG(daily_usage) AS avg_daily_usage,
         COUNT(*) AS snapshot_count
-      FROM \`${process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT}.${DATASET_ID}.inventory_daily\`
+      FROM \`${projectId}.${DATASET_ID}.inventory_daily\`
       WHERE synced_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
       GROUP BY center_id, item_name
       HAVING snapshot_count >= 1
