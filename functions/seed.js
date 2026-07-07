@@ -32,7 +32,7 @@ const DEMO_USERS = [
   },
 ];
 
-export async function seedDemoUsersAndData(mockCenters, mockInventory) {
+export async function seedDemoUsersAndData(mockCenters, mockInventory, mockFeedback = {}) {
   const auth = getAuth();
   const db = getFirestore();
   const results = [];
@@ -73,9 +73,14 @@ export async function seedDemoUsersAndData(mockCenters, mockInventory) {
       const cleanItemName = item.name.replace(/[^a-zA-Z0-9]/g, '_');
       await db.doc(`centers/${center.id}/inventory/${cleanItemName}`).set(item, { merge: true });
     }
+    const feedbackItems = mockFeedback[center.id] || [];
+    for (const [idx, fb] of feedbackItems.entries()) {
+      await db.doc(`centers/${center.id}/feedback/demo-${idx}`).set(fb, { merge: true });
+    }
   }
 
-  return { users: results, centersSeeded: mockCenters.length };
+  const feedbackSeeded = Object.values(mockFeedback).reduce((sum, items) => sum + items.length, 0);
+  return { users: results, centersSeeded: mockCenters.length, feedbackSeeded };
 }
 
 export { DEMO_USERS };

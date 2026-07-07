@@ -9,7 +9,7 @@ import {
   addDoc,
   orderBy,
 } from 'firebase/firestore';
-import { MOCK_CENTERS, MOCK_INVENTORY } from '../utils/mockData';
+import { MOCK_CENTERS, MOCK_INVENTORY, MOCK_FEEDBACK } from '../utils/mockData';
 import { getDb, isFirebaseLive } from './firebaseApp';
 
 export { isFirebaseLive, getSavedFirebaseConfig, saveFirebaseConfig } from './firebaseApp';
@@ -26,6 +26,19 @@ if (!localStorage.getItem(LOCAL_CENTERS_KEY)) {
 }
 if (!localStorage.getItem(LOCAL_INVENTORY_KEY)) {
   localStorage.setItem(LOCAL_INVENTORY_KEY, JSON.stringify(MOCK_INVENTORY));
+}
+if (!localStorage.getItem(LOCAL_FEEDBACK_KEY)) {
+  localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(MOCK_FEEDBACK));
+} else {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '{}');
+    const hasAny = Object.values(parsed).some((items) => Array.isArray(items) && items.length > 0);
+    if (!hasAny) {
+      localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(MOCK_FEEDBACK));
+    }
+  } catch {
+    localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(MOCK_FEEDBACK));
+  }
 }
 
 const localListeners = new Set();
@@ -74,6 +87,10 @@ export async function seedFirestoreIfEmpty() {
         for (const item of inventoryItems) {
           const cleanItemName = item.name.replace(/[^a-zA-Z0-9]/g, '_');
           await setDoc(doc(db, `centers/${center.id}/inventory`, cleanItemName), item);
+        }
+        const feedbackItems = MOCK_FEEDBACK[center.id] || [];
+        for (const [idx, fb] of feedbackItems.entries()) {
+          await setDoc(doc(db, `centers/${center.id}/feedback`, `demo-${idx}`), fb);
         }
       }
     }
@@ -283,6 +300,7 @@ function evaluateCenterInventoryStatusLocal(centerId, items) {
 export function resetDatabase() {
   localStorage.setItem(LOCAL_CENTERS_KEY, JSON.stringify(MOCK_CENTERS));
   localStorage.setItem(LOCAL_INVENTORY_KEY, JSON.stringify(MOCK_INVENTORY));
+  localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(MOCK_FEEDBACK));
   triggerLocalUpdate();
 }
 
@@ -295,6 +313,7 @@ export async function saveFeedback(centerId, feedbackObj) {
   if (useRealFirebase && db) {
     try {
       await addDoc(collection(db, `centers/${centerId}/feedback`), entry);
+      mirrorFeedbackToLocal(centerId, entry);
       return true;
     } catch (e) {
       console.error('Firestore saveFeedback failed:', e);
@@ -314,6 +333,28 @@ export function getFeedbackForCenter(centerId) {
   return allFeedback[centerId] || [];
 }
 
+function mirrorFeedbackToLocal(centerId, entry) {
+  const allFeedback = JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '{}');
+  if (!allFeedback[centerId]) allFeedback[centerId] = [];
+  allFeedback[centerId].push(entry);
+  localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(allFeedback));
+}
+
+function mirrorFeedbackListToLocal(centerId, items) {
+  const allFeedback = JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '{}');
+  allFeedback[centerId] = items;
+  localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(allFeedback));
+}
+
+export function subscribeToAllFeedback(centers, onUpdate) {
+  const unsubscribes = centers.map((center) =>
+    subscribeToFeedback(center.id, (items) => {
+      onUpdate(center.id, items);
+    })
+  );
+  return () => unsubscribes.forEach((unsub) => unsub());
+}
+
 export function subscribeToFeedback(centerId, onUpdate) {
   if (useRealFirebase && db) {
     const q = query(
@@ -323,6 +364,7 @@ export function subscribeToFeedback(centerId, onUpdate) {
     return onSnapshot(q, (snapshot) => {
       const items = [];
       snapshot.forEach((d) => items.push({ id: d.id, ...d.data() }));
+      mirrorFeedbackListToLocal(centerId, items);
       onUpdate(items);
     }, () => onUpdate(getFeedbackForCenter(centerId)));
   }

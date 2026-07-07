@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Sparkles, RefreshCw, AlertOctagon, TrendingUp, AlertTriangle, ArrowRightLeft, Users, ShieldAlert, Check, Activity, Database } from 'lucide-react';
+import { Sparkles, RefreshCw, AlertOctagon, TrendingUp, AlertTriangle, ArrowRightLeft, Users, ShieldAlert, Check, Activity, Database, MessageSquare, Star } from 'lucide-react';
 import InteractiveMap from './InteractiveMap';
-import { generateForecastingAndRedistribution } from '../services/gemini';
-import { subscribeToInventory, updateInventoryItem } from '../services/firebase';
+import { generateForecastingAndRedistribution, summarizeCitizenFeedback } from '../services/gemini';
+import { subscribeToInventory, subscribeToAllFeedback, updateInventoryItem } from '../services/firebase';
 import { callSyncToBigQuery, isCloudFunctionsAvailable } from '../services/api';
 
 function groupAlertsByCenter(alerts, centers) {
@@ -41,6 +41,9 @@ export default function AdminDashboard({ centers }) {
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [executingTransferId, setExecutingTransferId] = useState(null);
   const [bqSyncStatus, setBqSyncStatus] = useState('');
+  const [feedbackByCenter, setFeedbackByCenter] = useState({});
+  const [feedbackSummaries, setFeedbackSummaries] = useState(null);
+  const [isLoadingFeedbackSummary, setIsLoadingFeedbackSummary] = useState(false);
   const hasAutoRunAudit = useRef(false);
   const interventionsSectionRef = useRef(null);
 
@@ -66,6 +69,40 @@ export default function AdminDashboard({ centers }) {
       unsubscribes.forEach(unsub => unsub());
     };
   }, [centers]);
+
+  useEffect(() => {
+    const unsubscribes = subscribeToAllFeedback(centers, (centerId, items) => {
+      setFeedbackByCenter((prev) => ({ ...prev, [centerId]: items }));
+    });
+    return () => unsubscribes();
+  }, [centers]);
+
+  const allFeedback = useMemo(() => {
+    return centers.flatMap((center) => {
+      const items = feedbackByCenter[center.id] || [];
+      return items.map((fb) => ({ ...fb, centerId: center.id, centerName: fb.centerName || center.name }));
+    }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  }, [centers, feedbackByCenter]);
+
+  const totalFeedbackCount = allFeedback.length;
+  const districtAvgRating = useMemo(() => {
+    if (totalFeedbackCount === 0) return 0;
+    const sum = allFeedback.reduce((acc, fb) => acc + (fb.rating || 0), 0);
+    return Math.round((sum / totalFeedbackCount) * 10) / 10;
+  }, [allFeedback, totalFeedbackCount]);
+
+  const handleSummarizeFeedback = async () => {
+    if (isLoadingFeedbackSummary) return;
+    setIsLoadingFeedbackSummary(true);
+    try {
+      const result = await summarizeCitizenFeedback(centers, feedbackByCenter);
+      setFeedbackSummaries(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingFeedbackSummary(false);
+    }
+  };
 
   // Aggregate metrics
   const totalBeds = centers.reduce((sum, c) => sum + c.beds.total, 0);
@@ -448,6 +485,111 @@ export default function AdminDashboard({ centers }) {
               <Sparkles size={24} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
               <p>Run Gemini AI Audit to pull analytics logs.</p>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Citizen Feedback */}
+      <div className="glass-card admin-feedback-section">
+        <div className="admin-feedback-header">
+          <div>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+              <MessageSquare size={20} color="var(--primary)" />
+              Citizen Feedback
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+              Recent ratings and comments submitted by citizens across all district health centers.
+            </p>
+          </div>
+          <div className="admin-feedback-header-actions">
+            {totalFeedbackCount > 0 && (
+              <span className="admin-feedback-stat">
+                {totalFeedbackCount} reviews · {districtAvgRating} avg
+              </span>
+            )}
+            <button
+              className="btn-secondary"
+              onClick={handleSummarizeFeedback}
+              disabled={isLoadingFeedbackSummary || totalFeedbackCount === 0}
+            >
+              {isLoadingFeedbackSummary ? (
+                <>
+                  <RefreshCw className="spin" size={14} />
+                  Summarizing...
+                </>
+              ) : (
+                <>
+                  <Sparkles size={14} />
+                  Summarize Feedback
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {feedbackSummaries && (
+          <div className="admin-feedback-summaries">
+            <div className="insight-section-header" style={{ marginBottom: '0.25rem' }}>
+              <Sparkles size={16} />
+              <span>AI Feedback Summary</span>
+              {feedbackSummaries.isMock && (
+                <span className="badge warning" style={{ fontSize: '0.62rem', marginLeft: '0.35rem' }}>Demo</span>
+              )}
+            </div>
+            <div className="admin-feedback-summary-grid">
+              {feedbackSummaries.summaries.map((item) => (
+                <div key={item.centerId} className="admin-feedback-summary-card">
+                  <div className="admin-feedback-summary-card-header">
+                    <strong>{item.centerName}</strong>
+                    <span className="admin-feedback-summary-meta">
+                      {item.avgRating} ★ · {item.reviewCount} review{item.reviewCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p>{item.summary}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {allFeedback.length === 0 ? (
+          <div className="insight-empty-state" style={{ marginTop: '1rem' }}>
+            <MessageSquare size={24} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
+            <p>No citizen feedback submitted yet.</p>
+          </div>
+        ) : (
+          <div className="admin-feedback-list">
+            {allFeedback.map((fb, idx) => (
+              <div key={fb.id || `${fb.centerId}-${idx}`} className="admin-feedback-item">
+                <div className="admin-feedback-item-top">
+                  <div>
+                    <strong>{fb.name || 'Anonymous'}</strong>
+                    <span className="admin-feedback-center-tag">{fb.centerName}</span>
+                  </div>
+                  <div className="admin-feedback-item-meta">
+                    <div className="citizen-mini-stars">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={12}
+                          fill={star <= fb.rating ? 'var(--status-warning)' : 'none'}
+                          color={star <= fb.rating ? 'var(--status-warning)' : 'var(--text-muted)'}
+                        />
+                      ))}
+                    </div>
+                    <span>{new Date(fb.timestamp).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                {fb.text && <p className="admin-feedback-text">{fb.text}</p>}
+                {fb.categories?.length > 0 && (
+                  <div className="admin-feedback-tags">
+                    {fb.categories.map((cat) => (
+                      <span key={cat} className="admin-feedback-tag">{cat}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

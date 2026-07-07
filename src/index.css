@@ -2497,6 +2497,144 @@ tr:hover td {
   gap: 1px;
 }
 
+/* Admin Citizen Feedback */
+.admin-feedback-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.admin-feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.admin-feedback-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-feedback-stat {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(15, 76, 129, 0.08);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+}
+
+.admin-feedback-summaries {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  border-top: 3px solid var(--primary);
+}
+
+.admin-feedback-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-feedback-summary-card {
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.admin-feedback-summary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-feedback-summary-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.admin-feedback-summary-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.admin-feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.admin-feedback-item {
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.admin-feedback-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-feedback-center-tag {
+  margin-left: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(15, 76, 129, 0.08);
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+}
+
+.admin-feedback-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.admin-feedback-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.admin-feedback-tags {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.admin-feedback-tag {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--primary-glow);
+  border-radius: 4px;
+  color: var(--primary);
+}
+
 /* Health Schemes */
 .citizen-schemes-grid {
   display: grid;

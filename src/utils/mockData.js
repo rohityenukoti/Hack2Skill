@@ -133,3 +133,171 @@ export const MOCK_INVENTORY = {
     { name: "Amlodipine (5mg)", category: "Antihypertensive", stock: 290, minRequired: 300, dailyUsage: 25 }
   ]
 };
+
+export const MOCK_FEEDBACK = {
+  "phc-narendra": [
+    {
+      centerId: "phc-narendra",
+      centerName: "PHC Narendra",
+      rating: 3,
+      text: "Staff were polite but I had to wait over two hours. Paracetamol was out of stock when I needed it.",
+      categories: ["Wait Time", "Medicine Availability", "Staff Behavior"],
+      name: "Lakshmi B.",
+      timestamp: "2026-07-05T09:15:00.000Z"
+    },
+    {
+      centerId: "phc-narendra",
+      centerName: "PHC Narendra",
+      rating: 4,
+      text: "Clean facility and the nurse explained my prescription clearly. Queue management could be better in the morning.",
+      categories: ["Cleanliness", "Staff Behavior", "Wait Time"],
+      name: "Suresh G.",
+      timestamp: "2026-07-03T11:40:00.000Z"
+    },
+    {
+      centerId: "phc-narendra",
+      centerName: "PHC Narendra",
+      rating: 2,
+      text: "Came for a CBC test but was told kits are limited. Had to return the next day.",
+      categories: ["Medicine Availability", "Facilities"],
+      name: "Anonymous Citizen",
+      timestamp: "2026-07-01T08:20:00.000Z"
+    }
+  ],
+  "phc-hebballi": [
+    {
+      centerId: "phc-hebballi",
+      centerName: "PHC Hebballi",
+      rating: 1,
+      text: "No doctor was available when I visited. Only one staff member was present and could not help with my child's fever.",
+      categories: ["Staff Behavior", "Overall Experience"],
+      name: "Priya M.",
+      timestamp: "2026-07-06T10:05:00.000Z"
+    },
+    {
+      centerId: "phc-hebballi",
+      centerName: "PHC Hebballi",
+      rating: 2,
+      text: "Very crowded and no medicines in the pharmacy. People were waiting outside in the heat.",
+      categories: ["Medicine Availability", "Wait Time", "Facilities"],
+      name: "Ramesh K.",
+      timestamp: "2026-07-04T14:30:00.000Z"
+    },
+    {
+      centerId: "phc-hebballi",
+      centerName: "PHC Hebballi",
+      rating: 2,
+      text: "Building is clean but services are severely understaffed. District should send a doctor urgently.",
+      categories: ["Cleanliness", "Staff Behavior"],
+      name: "Fatima S.",
+      timestamp: "2026-07-02T16:45:00.000Z"
+    }
+  ],
+  "chc-kalghatgi": [
+    {
+      centerId: "chc-kalghatgi",
+      centerName: "CHC Kalghatgi",
+      rating: 5,
+      text: "Excellent care. Got my X-ray and blood test done the same day. Staff were helpful and spoke Kannada clearly.",
+      categories: ["Facilities", "Staff Behavior", "Overall Experience"],
+      name: "Venkatesh R.",
+      timestamp: "2026-07-06T12:00:00.000Z"
+    },
+    {
+      centerId: "chc-kalghatgi",
+      centerName: "CHC Kalghatgi",
+      rating: 4,
+      text: "Good experience overall. Wait time was about 45 minutes but the doctor was thorough.",
+      categories: ["Wait Time", "Staff Behavior"],
+      name: "Anita D.",
+      timestamp: "2026-07-03T09:50:00.000Z"
+    }
+  ],
+  "phc-mugad": [
+    {
+      centerId: "phc-mugad",
+      centerName: "PHC Mugad",
+      rating: 4,
+      text: "Small center but well maintained. Got medicines without any issue and did not have to wait long.",
+      categories: ["Medicine Availability", "Cleanliness", "Wait Time"],
+      name: "Gopal N.",
+      timestamp: "2026-07-05T15:20:00.000Z"
+    },
+    {
+      centerId: "phc-mugad",
+      centerName: "PHC Mugad",
+      rating: 5,
+      text: "ASHA worker guided me through the Ayushman registration. Very satisfied with the visit.",
+      categories: ["Staff Behavior", "Overall Experience"],
+      name: "Shanta P.",
+      timestamp: "2026-07-01T10:10:00.000Z"
+    }
+  ],
+  "chc-kundgol": [
+    {
+      centerId: "chc-kundgol",
+      centerName: "CHC Kundgol",
+      rating: 3,
+      text: "Beds were almost full and the OPD line was very long. Staff tried their best but the center needs more doctors.",
+      categories: ["Wait Time", "Facilities", "Staff Behavior"],
+      name: "Basavaraj H.",
+      timestamp: "2026-07-06T08:30:00.000Z"
+    },
+    {
+      centerId: "chc-kundgol",
+      centerName: "CHC Kundgol",
+      rating: 3,
+      text: "Insulin was available but I was asked to come back for amoxicillin. Mixed experience.",
+      categories: ["Medicine Availability", "Overall Experience"],
+      name: "Anonymous Citizen",
+      timestamp: "2026-07-04T11:15:00.000Z"
+    },
+    {
+      centerId: "chc-kundgol",
+      centerName: "CHC Kundgol",
+      rating: 4,
+      text: "Diagnostic facilities are good. Parking is difficult during market days.",
+      categories: ["Facilities", "Overall Experience"],
+      name: "Meena J.",
+      timestamp: "2026-07-02T13:00:00.000Z"
+    }
+  ]
+};
+
+export const MOCK_FEEDBACK_SUMMARIES = [
+  {
+    centerId: "phc-narendra",
+    centerName: "PHC Narendra",
+    avgRating: 3.0,
+    reviewCount: 3,
+    summary: "Citizens appreciate polite staff and a clean facility, but recurring complaints center on long morning queues and intermittent medicine stock-outs—especially Paracetamol and diagnostic kits. Improving pharmacy replenishment and triage during peak hours would likely lift satisfaction scores."
+  },
+  {
+    centerId: "phc-hebballi",
+    centerName: "PHC Hebballi",
+    avgRating: 1.7,
+    reviewCount: 3,
+    summary: "Feedback is overwhelmingly negative, with all recent reviews citing doctor absenteeism, empty pharmacy shelves, and long waits in overcrowded conditions. This center requires immediate district intervention—deploy on-call medical staff and emergency medicine supply before patient trust erodes further."
+  },
+  {
+    centerId: "chc-kalghatgi",
+    centerName: "CHC Kalghatgi",
+    avgRating: 4.5,
+    reviewCount: 2,
+    summary: "Patients report a strong overall experience, highlighting same-day diagnostics, clear communication in local language, and attentive clinical staff. Minor wait-time concerns exist but do not overshadow the center's role as a reliable referral hub for the taluk."
+  },
+  {
+    centerId: "phc-mugad",
+    centerName: "PHC Mugad",
+    avgRating: 4.5,
+    reviewCount: 2,
+    summary: "This low-footfall PHC receives consistently positive feedback for short wait times, medicine availability, and proactive ASHA support for scheme enrollment. It serves as a model for how smaller centers can deliver efficient primary care when adequately staffed."
+  },
+  {
+    centerId: "chc-kundgol",
+    centerName: "CHC Kundgol",
+    avgRating: 3.3,
+    reviewCount: 3,
+    summary: "Reviews are mixed: citizens value diagnostic capabilities and staff effort under pressure, but overcrowding, near-full bed occupancy, and partial pharmacy stock-outs are common themes. Adding OPD capacity and stabilizing antibiotic supply would address the most frequent grievances."
+  }
+];

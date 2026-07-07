@@ -3,6 +3,7 @@ import {
   callParseVoiceReport,
   isCloudFunctionsAvailable,
 } from './api';
+import { MOCK_FEEDBACK_SUMMARIES } from '../utils/mockData';
 
 function getSimulatedInsights(centers, inventories) {
   const alerts = [];
@@ -178,6 +179,32 @@ export async function parseVoiceInput(transcript, centerName) {
 
   return new Promise((resolve) => {
     setTimeout(() => resolve(parseVoiceFallback(transcript, centerName)), 600);
+  });
+}
+
+function getSimulatedFeedbackSummaries(centers, feedbackByCenter) {
+  return MOCK_FEEDBACK_SUMMARIES
+    .filter((item) => centers.some((c) => c.id === item.centerId))
+    .map((item) => {
+      const liveItems = feedbackByCenter[item.centerId] || [];
+      if (liveItems.length === 0) return item;
+      const avgRating = Math.round(
+        (liveItems.reduce((sum, fb) => sum + (fb.rating || 0), 0) / liveItems.length) * 10
+      ) / 10;
+      return {
+        ...item,
+        avgRating,
+        reviewCount: liveItems.length,
+      };
+    });
+}
+
+export async function summarizeCitizenFeedback(centers, feedbackByCenter) {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve({
+      summaries: getSimulatedFeedbackSummaries(centers, feedbackByCenter),
+      isMock: true,
+    }), 900);
   });
 }
 

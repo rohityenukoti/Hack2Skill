@@ -10,7 +10,7 @@ import { transcribeAudioBase64 } from './speech.js';
 import { syncFirestoreToBigQuery, getInventoryTrendSummary } from './bigquery.js';
 import { translateText, translateBatch, getSupportedLanguages } from './translation.js';
 import { seedDemoUsersAndData, DEMO_USERS } from './seed.js';
-import { MOCK_CENTERS, MOCK_INVENTORY } from './mockData.js';
+import { MOCK_CENTERS, MOCK_INVENTORY, MOCK_FEEDBACK } from './mockData.js';
 
 initializeApp();
 
@@ -188,7 +188,7 @@ export const seedDemoAccounts = onCall(
         'Pass { confirmSeed: true } to seed demo accounts. Run once after deploy.'
       );
     }
-    const result = await seedDemoUsersAndData(MOCK_CENTERS, MOCK_INVENTORY);
+    const result = await seedDemoUsersAndData(MOCK_CENTERS, MOCK_INVENTORY, MOCK_FEEDBACK);
     return {
       ...result,
       demoCredentials: DEMO_USERS.map(({ email, password, role, centerId }) => ({
