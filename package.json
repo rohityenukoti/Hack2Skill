@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:ghpages": "vite build --mode ghpages",
     "preview": "vite preview",
     "lint:functions": "npm --prefix functions run lint"
   },

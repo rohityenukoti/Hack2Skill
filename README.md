@@ -202,7 +202,6 @@ firebase deploy --only hosting
 From `package.json`:
 - `npm run dev`: start Vite dev server
 - `npm run build`: production build (outputs to `dist/`)
-- `npm run build:ghpages`: build with GitHub Pages base path (sets Vite `base` to `/Hack2Skill/`)
 - `npm run preview`: preview built app locally
 - `npm run lint:functions`: run Functions lint/checks (`functions/` package)
 
