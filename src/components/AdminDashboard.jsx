@@ -201,18 +201,25 @@ export default function AdminDashboard({ centers }) {
   const renderTransferCard = (transfer, idx, { showNotify = false, showStatus = false } = {}) => (
     <div key={transfer.id || idx} className="insight-card success-insight transfer-item-card">
       <div className="insight-card-header">
-        <span className="insight-card-label">{transfer.itemName}</span>
+        <span className="insight-card-label">Transfer Recommendation</span>
         <span className={`badge ${transfer.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
-          {transfer.urgency}
+          {transfer.urgency} Urgency
         </span>
       </div>
       <p className="insight-card-title">
-        {transfer.quantity} units
+        Move {transfer.quantity} units of {transfer.itemName}
       </p>
       <p className="insight-text transfer-route">
-        <strong>{transfer.fromName}</strong> ➔ <strong>{transfer.toName}</strong>
-        <span className="transfer-distance">{transfer.distanceEstimate}</span>
+        From <strong>{transfer.fromName}</strong> ➔ To <strong>{transfer.toName}</strong>
+        {transfer.distanceEstimate && (
+          <span className="transfer-distance">({transfer.distanceEstimate})</span>
+        )}
       </p>
+      {transfer.reason && (
+        <p className="insight-text insight-quote">
+          &ldquo;{transfer.reason}&rdquo;
+        </p>
+      )}
       {showStatus && (
         <p className="transfer-status-line">
           {transfer.donorConfirmed && transfer.recipientConfirmed
@@ -289,13 +296,23 @@ export default function AdminDashboard({ centers }) {
             {completedTransfers.map((transfer, idx) => (
               <div key={transfer.id || idx} className="insight-card transfer-item-card transfer-completed-card">
                 <div className="insight-card-header">
-                  <span className="insight-card-label">{transfer.itemName}</span>
+                  <span className="insight-card-label">Transfer Recommendation</span>
                   <span className="badge success" style={{ fontSize: '0.65rem' }}>Completed</span>
                 </div>
-                <p className="insight-card-title">{transfer.quantity} units</p>
-                <p className="insight-text transfer-route">
-                  <strong>{transfer.fromName}</strong> ➔ <strong>{transfer.toName}</strong>
+                <p className="insight-card-title">
+                  Move {transfer.quantity} units of {transfer.itemName}
                 </p>
+                <p className="insight-text transfer-route">
+                  From <strong>{transfer.fromName}</strong> ➔ To <strong>{transfer.toName}</strong>
+                  {transfer.distanceEstimate && (
+                    <span className="transfer-distance">({transfer.distanceEstimate})</span>
+                  )}
+                </p>
+                {transfer.reason && (
+                  <p className="insight-text insight-quote">
+                    &ldquo;{transfer.reason}&rdquo;
+                  </p>
+                )}
                 {transfer.completedAt && (
                   <p className="transfer-completed-at">
                     Completed {new Date(transfer.completedAt).toLocaleString()}
