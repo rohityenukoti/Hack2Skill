@@ -422,7 +422,6 @@ h1, h2, h3, h4, h5, h6 {
   color: #fff;
   box-shadow: 0 8px 20px rgba(127, 29, 29, 0.35);
   pointer-events: auto;
-  cursor: pointer;
 }
 
 .map-critical-tooltip__close {
@@ -480,6 +479,39 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.68rem;
   font-weight: 700;
   color: #fecaca;
+  margin-bottom: 0.5rem;
+}
+
+.map-tooltip-more-details {
+  display: block;
+  width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.map-tooltip-more-details:hover {
+  background: rgba(11, 76, 140, 0.06);
+  border-color: var(--primary);
+}
+
+.map-tooltip-more-details--critical {
+  margin-top: 0.55rem;
+  border-color: rgba(254, 242, 242, 0.35);
+  background: rgba(254, 242, 242, 0.12);
+  color: #fff;
+}
+
+.map-tooltip-more-details--critical:hover {
+  background: rgba(254, 242, 242, 0.22);
+  border-color: #fecaca;
 }
 
 @keyframes map-critical-halo-pulse {

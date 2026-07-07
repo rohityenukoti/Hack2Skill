@@ -47,11 +47,9 @@ export default function AdminDashboard({ centers }) {
   const hasAutoRunAudit = useRef(false);
   const interventionsSectionRef = useRef(null);
 
-  const handleMapCenterClick = useCallback((center, { isOpening = true, source = 'marker' } = {}) => {
+  const handleMapMoreDetails = useCallback((center) => {
     setSelectedCenter(center);
-    if (isOpening || source === 'tooltip') {
-      interventionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    interventionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
   // Subscribe to all center inventories
@@ -385,7 +383,7 @@ export default function AdminDashboard({ centers }) {
           <InteractiveMap 
             centers={centers} 
             redistributions={aiData?.redistributions || []}
-            onCenterClick={handleMapCenterClick}
+            onMoreDetails={handleMapMoreDetails}
           />
         </div>
 

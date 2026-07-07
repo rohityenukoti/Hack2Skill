@@ -25,24 +25,13 @@ function computeBounds(centers) {
   };
 }
 
-function CriticalTooltip({ center, onClose, onTooltipClick }) {
+function CriticalTooltip({ center, onClose, onMoreDetails }) {
   return (
-    <div
-      className="map-critical-tooltip"
-      onClick={() => onTooltipClick?.(center)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') onTooltipClick?.(center);
-      }}
-      role="button"
-      tabIndex={0}
-    >
+    <div className="map-critical-tooltip">
       <button
         type="button"
         className="map-critical-tooltip__close"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
+        onClick={onClose}
         aria-label={`Close ${center.name} alert`}
       >
         ×
@@ -51,11 +40,18 @@ function CriticalTooltip({ center, onClose, onTooltipClick }) {
       <strong>{center.name}</strong>
       <p>{center.location}</p>
       <span className="map-critical-tooltip__status">Immediate intervention required</span>
+      <button
+        type="button"
+        className="map-tooltip-more-details map-tooltip-more-details--critical"
+        onClick={() => onMoreDetails?.(center)}
+      >
+        More details
+      </button>
     </div>
   );
 }
 
-export default function CanvasMap({ centers, redistributions, onCenterClick }) {
+export default function CanvasMap({ centers, redistributions, onMoreDetails }) {
   const canvasRef = useRef(null);
   const [hoveredCenter, setHoveredCenter] = useState(null);
   const [selectedCenter, setSelectedCenter] = useState(null);
@@ -181,27 +177,19 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
       const coords = getCanvasCoords(center.coordinates.lat, center.coordinates.lng, canvas.width, canvas.height);
       if (Math.hypot(coords.x - clickX, coords.y - clickY) < 22) {
         if (center.status === 'critical') {
-          const isOpening = !openCriticalIds.has(center.id);
           setOpenCriticalIds((prev) => {
             const next = new Set(prev);
             if (next.has(center.id)) next.delete(center.id);
             else next.add(center.id);
             return next;
           });
-          onCenterClick?.(center, { source: 'marker', isOpening });
         } else {
-          const isOpening = selectedCenter?.id !== center.id;
           setSelectedCenter((prev) => (prev?.id === center.id ? null : center));
-          onCenterClick?.(center, { source: 'marker', isOpening });
         }
         return;
       }
     }
     setSelectedCenter(null);
-  };
-
-  const handleTooltipClick = (center) => {
-    onCenterClick?.(center, { source: 'tooltip', isOpening: true });
   };
 
   return (
@@ -235,7 +223,7 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
                       return next;
                     });
                   }}
-                  onTooltipClick={handleTooltipClick}
+                  onMoreDetails={onMoreDetails}
                 />
               </div>
             )}
@@ -248,18 +236,16 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
         )}
       </div>
       {selectedCenter && (
-        <div
-          className="glass-card"
-          style={{ marginTop: '1rem', padding: '1rem', cursor: 'pointer' }}
-          onClick={() => handleTooltipClick(selectedCenter)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') handleTooltipClick(selectedCenter);
-          }}
-          role="button"
-          tabIndex={0}
-        >
+        <div className="glass-card" style={{ marginTop: '1rem', padding: '1rem' }}>
           <h3 style={{ fontSize: '1.1rem', margin: 0 }}>{selectedCenter.name}</h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedCenter.location} • {selectedCenter.status}</p>
+          <button
+            type="button"
+            className="map-tooltip-more-details"
+            onClick={() => onMoreDetails?.(selectedCenter)}
+          >
+            More details
+          </button>
         </div>
       )}
     </div>
