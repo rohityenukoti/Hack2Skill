@@ -96,53 +96,44 @@ export const transcribeAudio = onCall(
   }
 );
 
+function handleTranslationError(error, context) {
+  console.error(`${context} error:`, error);
+  const message = error.message || `${context} failed`;
+  if (message.includes('Cloud Translation API') || message.includes('PERMISSION_DENIED')) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Cloud Translation API is not enabled. Enable translate.googleapis.com in GCP Console.'
+    );
+  }
+  throw new HttpsError('internal', message);
+}
+
 export const translateTextFn = onCall(
   { region: 'asia-south1', maxInstances: 10 },
   async (request) => {
     requireAuth(request);
-    const { text, targetLanguage } = request.data || {};
-    if (!text) {
-      throw new HttpsError('invalid-argument', 'text is required');
-    }
-    try {
-      return await translateText(text, targetLanguage || 'hi');
-    } catch (error) {
-      console.error('translateText error:', error);
-      const message = error.message || 'Translation failed';
-      if (message.includes('Cloud Translation API') || message.includes('PERMISSION_DENIED')) {
-        throw new HttpsError(
-          'failed-precondition',
-          'Cloud Translation API is not enabled. Enable translate.googleapis.com in GCP Console.'
-        );
-      }
-      throw new HttpsError('internal', message);
-    }
-  }
-);
+    const { text, texts, targetLanguage } = request.data || {};
+    const lang = targetLanguage || 'hi';
 
-export const translateBatchFn = onCall(
-  { region: 'asia-south1', maxInstances: 10 },
-  async (request) => {
-    requireAuth(request);
-    const { texts, targetLanguage } = request.data || {};
-    if (!Array.isArray(texts) || texts.length === 0) {
-      throw new HttpsError('invalid-argument', 'texts array is required');
-    }
-    if (texts.length > 50) {
-      throw new HttpsError('invalid-argument', 'Maximum 50 strings per batch');
-    }
     try {
-      return await translateBatch(texts, targetLanguage || 'hi');
-    } catch (error) {
-      console.error('translateBatch error:', error);
-      const message = error.message || 'Batch translation failed';
-      if (message.includes('Cloud Translation API') || message.includes('PERMISSION_DENIED')) {
-        throw new HttpsError(
-          'failed-precondition',
-          'Cloud Translation API is not enabled. Enable translate.googleapis.com in GCP Console.'
-        );
+      if (Array.isArray(texts)) {
+        if (texts.length === 0) {
+          throw new HttpsError('invalid-argument', 'texts array must not be empty');
+        }
+        if (texts.length > 50) {
+          throw new HttpsError('invalid-argument', 'Maximum 50 strings per batch');
+        }
+        return await translateBatch(texts, lang);
       }
-      throw new HttpsError('internal', message);
+
+      if (!text) {
+        throw new HttpsError('invalid-argument', 'text or texts is required');
+      }
+
+      return await translateText(text, lang);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      handleTranslationError(error, 'translateTextFn');
     }
   }
 );

@@ -38,22 +38,32 @@ export async function translateUiStrings(strings, targetLanguage = 'hi') {
 
   const uncached = results.filter((r) => r.cached === null);
   if (uncached.length > 0 && isCloudFunctionsAvailable()) {
+    let translated = false;
+
     try {
       const batch = await callTranslateBatch(
         uncached.map((r) => r.text),
         targetLanguage
       );
       const translations = batch?.translations ?? [];
-      uncached.forEach((item, index) => {
-        const translated = translations[index] ?? item.text;
-        cache.set(cacheKey(targetLanguage, item.text), translated);
-        item.cached = translated;
-      });
+      if (translations.length === uncached.length) {
+        uncached.forEach((item, index) => {
+          const value = translations[index] ?? item.text;
+          cache.set(cacheKey(targetLanguage, item.text), value);
+          item.cached = value;
+        });
+        translated = true;
+      }
     } catch (error) {
-      console.error('Batch translation failed:', error);
-      uncached.forEach((item) => {
-        item.cached = item.text;
-      });
+      console.warn('Batch translation unavailable, falling back to single calls:', error?.message);
+    }
+
+    if (!translated) {
+      await Promise.all(
+        uncached.map(async (item) => {
+          item.cached = await translateUiText(item.text, targetLanguage);
+        })
+      );
     }
   } else {
     uncached.forEach((item) => {

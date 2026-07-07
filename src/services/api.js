@@ -36,7 +36,7 @@ export async function callTranslateText(text, targetLanguage = 'hi') {
 }
 
 export async function callTranslateBatch(texts, targetLanguage = 'hi') {
-  const fn = getCallable('translateBatchFn');
+  const fn = getCallable('translateTextFn');
   if (!fn || !isFirebaseLive()) return null;
   const result = await fn({ texts, targetLanguage });
   return result.data;
