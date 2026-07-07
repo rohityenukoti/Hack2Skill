@@ -83,6 +83,10 @@ export default function CitizenPortal({ centers }) {
   const [translatedSchemes, setTranslatedSchemes] = useState(HEALTH_SCHEMES);
 
   useEffect(() => {
+    document.getElementById('main-content')?.scrollTo(0, 0);
+  }, [activeTab]);
+
+  useEffect(() => {
     if (language === 'en') {
       setTranslatedSchemes(HEALTH_SCHEMES);
       return;

@@ -71,6 +71,13 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  const mainContentRef = useRef(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    mainContentRef.current?.scrollTo(0, 0);
+  }, [currentView, activeTab]);
+
   const didSeedRef = useRef(false);
   useEffect(() => {
     // Seeding writes require elevated permissions; avoid running it on every app load,
@@ -302,7 +309,7 @@ export default function App() {
           <div className="sidebar-footer">Build with AI: Hackathon</div>
         </aside>
 
-        <main className="main-content" id="main-content">
+        <main className="main-content" id="main-content" ref={mainContentRef}>
           {activeTab === 'dashboard' && userRole === 'admin' && <AdminDashboard centers={centers} />}
           {activeTab === 'portal' && userRole === 'healthcenter' && (
             <PHCPortal
