@@ -237,8 +237,8 @@ export default function AdminDashboard({ centers }) {
           </div>
         </div>
 
-        {/* Right Card: Gemini AI Insights panel */}
-        <div className="glass-card ai-insights-panel">
+        {/* Right Column: Gemini AI Insights — separate section boxes */}
+        <div className="ai-insights-column">
           <div className="ai-header">
             <h3 className="ai-title">
               <Sparkles size={20} style={{ filter: 'drop-shadow(0 0 5px var(--primary-glow))' }} />
@@ -249,118 +249,129 @@ export default function AdminDashboard({ centers }) {
             )}
           </div>
 
-          <div className="ai-body">
-            {isLoadingAI ? (
+          {isLoadingAI ? (
+            <div className="glass-card insight-section-box">
               <div className="ai-pill-loading">
                 <div className="pulse-loader" />
                 <p>Generating logistics forecasts and computing redistribution paths...</p>
               </div>
-            ) : aiData ? (
-              <>
-                {/* 1. Alerts Section */}
-                {aiData.alerts && aiData.alerts.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Urgent Flags</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {aiData.alerts.map((alert, idx) => (
-                        <div key={idx} className={`insight-card ${alert.type === 'critical' ? 'critical-insight' : 'warning-insight'}`}>
-                          <div className="insight-card-header">
-                            <span>{alert.title}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              {centers.find(c => c.id === alert.centerId)?.name || "Facility Alert"}
-                            </span>
-                          </div>
-                          <p className="insight-text">{alert.message}</p>
-                        </div>
-                      ))}
-                    </div>
+            </div>
+          ) : aiData ? (
+            <>
+              {/* Urgent Flags */}
+              {aiData.alerts && aiData.alerts.length > 0 && (
+                <div className="glass-card insight-section-box section-alerts">
+                  <div className="insight-section-header">
+                    <AlertTriangle size={16} />
+                    <span>Urgent Flags</span>
+                    <span className="insight-section-count">{aiData.alerts.length}</span>
                   </div>
-                )}
-
-                {/* Underperforming Centers */}
-                {aiData.underperformingCenters && aiData.underperformingCenters.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '1rem 0 0.5rem 0', textTransform: 'uppercase' }}>
-                      Underperforming Centers — Intervention Briefs
-                    </h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {aiData.underperformingCenters.map((item, idx) => (
-                        <div key={idx} className="insight-card critical-insight">
-                          <div className="insight-card-header">
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <ShieldAlert size={14} />
-                              {item.centerName}
-                            </span>
-                            <span className="badge critical" style={{ fontSize: '0.65rem' }}>{item.severity}</span>
-                          </div>
-                          <p className="insight-text">{item.interventionBrief}</p>
+                  <div className="insight-section-body">
+                    {aiData.alerts.map((alert, idx) => (
+                      <div key={idx} className={`insight-card ${alert.type === 'critical' ? 'critical-insight' : 'warning-insight'}`}>
+                        <div className="insight-card-header">
+                          <span>{alert.title}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {centers.find(c => c.id === alert.centerId)?.name || "Facility Alert"}
+                          </span>
                         </div>
-                      ))}
-                    </div>
+                        <p className="insight-text">{alert.message}</p>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* 2. Redistribution Section */}
-                <div>
-                  <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '1rem 0 0.5rem 0', textTransform: 'uppercase' }}>
-                    AI Smart Transfers Suggestions
-                  </h4>
+              {/* Underperforming Centers */}
+              {aiData.underperformingCenters && aiData.underperformingCenters.length > 0 && (
+                <div className="glass-card insight-section-box section-underperforming">
+                  <div className="insight-section-header">
+                    <ShieldAlert size={16} />
+                    <span>Intervention Briefs</span>
+                    <span className="insight-section-count">{aiData.underperformingCenters.length}</span>
+                  </div>
+                  <div className="insight-section-body">
+                    {aiData.underperformingCenters.map((item, idx) => (
+                      <div key={idx} className="insight-card critical-insight">
+                        <div className="insight-card-header">
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {item.centerName}
+                          </span>
+                          <span className="badge critical" style={{ fontSize: '0.65rem' }}>{item.severity}</span>
+                        </div>
+                        <p className="insight-text">{item.interventionBrief}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Smart Transfers */}
+              <div className="glass-card insight-section-box section-transfers">
+                <div className="insight-section-header">
+                  <ArrowRightLeft size={16} />
+                  <span>Smart Transfer Suggestions</span>
+                  {aiData.redistributions?.length > 0 && (
+                    <span className="insight-section-count">{aiData.redistributions.length}</span>
+                  )}
+                </div>
+                <div className="insight-section-body">
                   {aiData.redistributions && aiData.redistributions.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {aiData.redistributions.map((redist, idx) => (
-                        <div key={idx} className="insight-card success-insight">
-                          <div className="insight-card-header">
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--status-success)' }}>
-                              <ArrowRightLeft size={14} />
-                              Transfer Recommendation
-                            </span>
-                            <span className={`badge ${redist.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
-                              {redist.urgency} Urgency
-                            </span>
-                          </div>
-                          <p style={{ fontWeight: 600, fontSize: '0.9rem', margin: '0.25rem 0' }}>
-                            Move {redist.quantity} units of {redist.itemName}
-                          </p>
-                          <p className="insight-text" style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
-                            From <strong>{redist.fromName}</strong> ➔ To <strong>{redist.toName}</strong> ({redist.distanceEstimate})
-                          </p>
-                          <p className="insight-text" style={{ fontStyle: 'italic', fontSize: '0.78rem' }}>
-                            "{redist.reason}"
-                          </p>
-                          <button 
-                            className="insight-action-btn"
-                            disabled={executingTransferId === idx}
-                            onClick={() => handleExecuteRedistribution(idx, redist)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            {executingTransferId === idx ? (
-                              <>
-                                <RefreshCw className="spin" style={{ animation: 'spin 1s infinite linear' }} size={10} />
-                                Transferring...
-                              </>
-                            ) : (
-                              <>
-                                <Check size={10} />
-                                Execute Redistribution
-                              </>
-                            )}
-                          </button>
+                    aiData.redistributions.map((redist, idx) => (
+                      <div key={idx} className="insight-card success-insight">
+                        <div className="insight-card-header">
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--status-success)' }}>
+                            Transfer Recommendation
+                          </span>
+                          <span className={`badge ${redist.urgency === 'High' ? 'critical' : 'warning'}`} style={{ fontSize: '0.65rem' }}>
+                            {redist.urgency} Urgency
+                          </span>
                         </div>
-                      ))}
-                    </div>
+                        <p style={{ fontWeight: 600, fontSize: '0.9rem', margin: '0.25rem 0' }}>
+                          Move {redist.quantity} units of {redist.itemName}
+                        </p>
+                        <p className="insight-text" style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                          From <strong>{redist.fromName}</strong> ➔ To <strong>{redist.toName}</strong> ({redist.distanceEstimate})
+                        </p>
+                        <p className="insight-text" style={{ fontStyle: 'italic', fontSize: '0.78rem' }}>
+                          "{redist.reason}"
+                        </p>
+                        <button
+                          className="insight-action-btn"
+                          disabled={executingTransferId === idx}
+                          onClick={() => handleExecuteRedistribution(idx, redist)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          {executingTransferId === idx ? (
+                            <>
+                              <RefreshCw className="spin" style={{ animation: 'spin 1s infinite linear' }} size={10} />
+                              Transferring...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={10} />
+                              Execute Redistribution
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ))
                   ) : (
-                    <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      No redistribution actions needed currently. Supplies are balanced.
+                    <div className="insight-empty-state">
+                      No redistribution actions needed. Supplies are balanced.
                     </div>
                   )}
                 </div>
-              </>
-            ) : (
-              <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', textAlign: 'center' }}>
+              </div>
+            </>
+          ) : (
+            <div className="glass-card insight-section-box">
+              <div className="insight-empty-state">
+                <Sparkles size={24} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
                 <p>Run Gemini AI Audit to pull analytics logs.</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
