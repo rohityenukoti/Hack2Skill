@@ -107,6 +107,7 @@ export default function HomePage({ onLogin }) {
           </div>
         </div>
       </div>
+      <div className="gov-top-bar-spacer" aria-hidden="true" />
 
       {/* 2. Top Navigation Bar */}
       <header className="home-navbar">

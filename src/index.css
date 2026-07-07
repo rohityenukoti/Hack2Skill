@@ -43,6 +43,8 @@
   
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
+
+  --gov-top-bar-height: 2rem;
 }
 
 /* --- Base Setup --- */
@@ -655,11 +657,22 @@ tr:hover td {
 
 /* Accessibility Top Utility Bar */
 .gov-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  min-height: var(--gov-top-bar-height);
   background: #0f172a;
   color: #cbd5e1;
   font-size: 0.75rem;
   padding: 0.4rem 2rem;
   border-bottom: 1px solid #1e293b;
+}
+
+.gov-top-bar-spacer {
+  height: var(--gov-top-bar-height);
+  flex-shrink: 0;
 }
 
 .gov-top-bar-inner {
@@ -692,6 +705,28 @@ tr:hover td {
 
 .gov-top-bar-link:hover {
   color: #ffffff;
+}
+
+.gov-top-bar-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid #475569;
+  color: #fca5a5;
+  padding: 0.15rem 0.55rem;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: var(--transition-fast);
+}
+
+.gov-top-bar-logout:hover {
+  background: #334155;
+  color: #fecaca;
+  border-color: #64748b;
 }
 
 .gov-accessibility-controls {

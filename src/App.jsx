@@ -170,9 +170,14 @@ export default function App() {
           </div>
           <div className="gov-top-bar-right">
             <a href="#main-content" className="gov-top-bar-link">Skip to Main Content</a>
+            <button type="button" className="gov-top-bar-logout" onClick={handleLogout}>
+              <LogOut size={14} />
+              Logout
+            </button>
           </div>
         </div>
       </div>
+      <div className="gov-top-bar-spacer" aria-hidden="true" />
 
       <header style={{ background: '#ffffff', borderBottom: '1px solid var(--border-color)', padding: '1rem 2rem' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -296,15 +301,6 @@ export default function App() {
               <span>System Setup</span>
             </div>
           )}
-
-          <div
-            className="nav-item"
-            onClick={handleLogout}
-            style={{ marginTop: '1rem', border: '1px solid var(--border-color)', color: 'var(--status-critical)' }}
-          >
-            <LogOut size={18} />
-            <span>Logout</span>
-          </div>
 
           <div className="sidebar-footer">Build with AI: Hackathon</div>
         </aside>
