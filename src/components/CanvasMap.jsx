@@ -13,10 +13,11 @@ function computeBounds(centers) {
   const lngs = centers.map((c) => c.coordinates.lng);
   const latSpan = Math.max(...lats) - Math.min(...lats);
   const lngSpan = Math.max(...lngs) - Math.min(...lngs);
-  const latPadding = Math.max(latSpan * 0.18, 0.04);
-  const lngPadding = Math.max(lngSpan * 0.18, 0.04);
+  const hasCritical = centers.some((c) => c.status === 'critical');
+  const latPadding = Math.max(latSpan * 0.3, hasCritical ? 0.1 : 0.05);
+  const lngPadding = Math.max(lngSpan * 0.3, 0.06);
   return {
-    minLat: Math.min(...lats) - latPadding,
+    minLat: Math.min(...lats) - latPadding * 0.6,
     maxLat: Math.max(...lats) + latPadding,
     minLng: Math.min(...lngs) - lngPadding,
     maxLng: Math.max(...lngs) + lngPadding,
@@ -27,19 +28,11 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
   const canvasRef = useRef(null);
   const [hoveredCenter, setHoveredCenter] = useState(null);
   const [selectedCenter, setSelectedCenter] = useState(null);
-  const [animationOffset, setAnimationOffset] = useState(0);
 
   const mapBounds = useMemo(() => computeBounds(centers), [centers]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setAnimationOffset((prev) => (prev + 0.8) % 40);
-    }, 30);
-    return () => clearInterval(interval);
-  }, []);
-
   const getCanvasCoords = (lat, lng, width, height) => {
-    const padding = 56;
+    const padding = 72;
     const x = padding + ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * (width - 2 * padding);
     const y = height - padding - ((lat - mapBounds.minLat) / (mapBounds.maxLat - mapBounds.minLat)) * (height - 2 * padding);
     return { x, y };
@@ -106,10 +99,9 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
       else if (center.status === 'critical') color = '#b91c1c';
 
       if (center.status === 'critical') {
-        const pulse = 10 + Math.sin(animationOffset * 0.25) * 3;
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
         ctx.beginPath();
-        ctx.arc(coords.x, coords.y, pulse + 6, 0, 2 * Math.PI);
+        ctx.arc(coords.x, coords.y, 16, 0, 2 * Math.PI);
         ctx.fill();
       }
 
@@ -127,7 +119,7 @@ export default function CanvasMap({ centers, redistributions, onCenterClick }) {
         ctx.fillText(center.name, coords.x, coords.y - 14);
       }
     });
-  }, [centers, redistributions, hoveredCenter, selectedCenter, animationOffset, mapBounds]);
+  }, [centers, redistributions, hoveredCenter, selectedCenter, mapBounds]);
 
   const handleMouseClick = (e) => {
     const canvas = canvasRef.current;

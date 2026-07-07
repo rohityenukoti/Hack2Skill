@@ -43,8 +43,21 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
     if (!map || !centers.length || !window.google?.maps) return;
     const bounds = new window.google.maps.LatLngBounds();
     centers.forEach((c) => bounds.extend(c.coordinates));
-    map.fitBounds(bounds, 48);
-  }, [centers]);
+
+    // Reserve space above critical markers for persistent tooltips
+    criticalCenters.forEach((c) => {
+      bounds.extend({ lat: c.coordinates.lat + 0.12, lng: c.coordinates.lng });
+    });
+
+    map.fitBounds(bounds, { top: 130, right: 90, bottom: 70, left: 90 });
+
+    window.google.maps.event.addListenerOnce(map, 'idle', () => {
+      const zoom = map.getZoom();
+      if (zoom != null && zoom > 0) {
+        map.setZoom(zoom - 1);
+      }
+    });
+  }, [centers, criticalCenters]);
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map;
@@ -92,7 +105,6 @@ function GoogleMapsView({ centers, redistributions, onCenterClick }) {
               strokeColor: c.status === 'critical' ? '#fecaca' : '#ffffff',
               strokeWeight: c.status === 'critical' ? 3 : 2,
             }}
-            animation={c.status === 'critical' ? window.google?.maps?.Animation?.BOUNCE : undefined}
             title={c.name}
             onClick={() => {
               setSelectedCenter(c);
