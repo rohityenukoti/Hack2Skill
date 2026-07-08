@@ -53,7 +53,7 @@ Chikitsalay Setu is a single-page React application backed by Firebase. Operatio
 
 | Component | Role access | Responsibility |
 |-----------|-------------|----------------|
-| `HomePage` | Public | Landing page, language selector, role-based login entry |
+| `HomePage` | Public | Landing page, language selector, hero role login buttons + detail login cards |
 | `LoginModal` | Public | Email/password (admin, staff) or anonymous citizen sign-in |
 | `AdminDashboard` | Admin | District KPIs, AI audit, map, transfers, feedback analytics, BQ sync |
 | `PHCPortal` | Health centre | Centre status/inventory updates, transfer confirmations |

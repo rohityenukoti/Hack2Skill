@@ -78,9 +78,9 @@ Quick orientation for the **live production app**. For screens, clicks, transfer
 
 | Role | How to enter | Credentials |
 |------|--------------|-------------|
-| **Administrator** | Homepage → *Login as Administrator* | `admin@dharwad.demo` / `Admin@123456` |
-| **Health Center Staff** | Homepage → *Login as Health Center* | `phc-narendra@dharwad.demo` / `Staff@123456` |
-| **Citizen** | Homepage → *Login as Citizen* | Click **Continue as Citizen** (anonymous Auth) |
+| **Administrator** | Homepage hero → **Administrator** (or login card below) | `admin@dharwad.demo` / `Admin@123456` |
+| **Health Center Staff** | Homepage hero → **Health Center** (or login card below) | `phc-narendra@dharwad.demo` / `Staff@123456` |
+| **Citizen** | Homepage hero → **Citizen** (or login card below) | Click **Continue as Citizen** (anonymous Auth) |
 
 Demo geography: **Dharwad district** — PHC Narendra, PHC Hebballi, CHC Kalghatgi, PHC Mugad, CHC Kundgol.
 
@@ -100,7 +100,7 @@ Demo geography: **Dharwad district** — PHC Narendra, PHC Hebballi, CHC Kalghat
 4. **Staff** — **Mark as Completed** on the transfer notification; adjust pharmacy stock.
 5. **Admin** — confirm the transfer under Completed; use **Summarize Feedback** if citizens have reviewed.
 
-Homepage also supports language switching, text size controls (`A−` / `A` / `A+`), helplines (104 / 108 / 181 / 1098), and rotating government announcements before any login.
+Homepage also supports language switching, text size controls (`A−` / `A` / `A+`), helplines (104 / 108 / 181 / 1098), and rotating government announcements before any login. Role sign-in is available from the **hero** (Administrator / Health Center / Citizen) so visitors do not need to scroll to the lower login cards.
 
 ---
 

@@ -43,9 +43,9 @@ Production stack: React SPA on **Firebase Hosting**, **Firebase Auth + Firestore
 
 | Role | How to enter | Credentials |
 |------|--------------|-------------|
-| **Administrator** | Homepage → *Login as Administrator* | `admin@dharwad.demo` / `Admin@123456` |
-| **Health Center Staff** | Homepage → *Login as Health Center* | `phc-narendra@dharwad.demo` / `Staff@123456` |
-| **Citizen** | Homepage → *Login as Citizen* | No credentials — click **Continue as Citizen** (anonymous Auth) |
+| **Administrator** | Homepage hero → **Administrator** (or login card below) | `admin@dharwad.demo` / `Admin@123456` |
+| **Health Center Staff** | Homepage hero → **Health Center** (or login card below) | `phc-narendra@dharwad.demo` / `Staff@123456` |
+| **Citizen** | Homepage hero → **Citizen** (or login card below) | No credentials — click **Continue as Citizen** (anonymous Auth) |
 
 Demo geography is **Dharwad district** with five facilities:
 
@@ -83,7 +83,12 @@ Open the live site. You land on a government-style public homepage before any lo
 ### Hero & stats
 
 - Bilingual hero (English + Hindi) with short value proposition
-- CTAs: **Get Started** (scrolls to login cards) and **Explore Features**
+- **Sign-in in the hero** — three compact role buttons open the login modal immediately (no scroll required):
+  1. **Administrator**
+  2. **Health Center**
+  3. **Citizen**
+- Soft role-tinted styling keeps the row scannable without crowding the first viewport
+- Quiet **Explore Features** text link below the buttons (scrolls to platform capabilities)
 - Quick stats strip: connected centres, 24/7 monitoring, Gemini insights, languages supported
 
 ### Government announcements
@@ -103,7 +108,7 @@ Six feature cards explain the product surface:
 
 ### Role login cards
 
-Three large cards open the appropriate login modal:
+A fuller **Access Your Dashboard** section lower on the page still shows three detail cards (features list + button). Useful for visitors who scroll; the hero buttons are the primary path for most people:
 
 1. **Administrator** — District Health Dashboard  
 2. **Health Center Staff** — PHC/CHC Operations Portal  
@@ -117,7 +122,7 @@ Footer repeats quick links, emergency numbers, and flagship government programs.
 
 ### Administrator / Health Center Staff
 
-1. Choose the role card.
+1. Choose a role from the **hero buttons** (or the login cards further down).
 2. Enter email + password (password visibility toggle available).
 3. Submit → Firebase Email/Password Auth.
 4. App loads `users/{uid}` from Firestore (role + `centerId` for staff).
@@ -127,7 +132,7 @@ Hints under the form show the demo credentials.
 
 ### Citizen
 
-1. Choose **Login as Citizen**.
+1. Choose **Citizen** from the hero (or **Login as Citizen** on the detail card).
 2. Click **Continue as Citizen** (no email/password).
 3. Firebase **Anonymous Auth** creates a session.
 4. Cloud Function `provisionCitizenProfile` writes `role: citizen` on `users/{uid}`.
