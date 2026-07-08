@@ -6,6 +6,8 @@ AI-powered, multilingual platform for **real-time PHC/CHC operations** — inven
 
 **Live demo**: [chikitsalaysetu.web.app](https://chikitsalaysetu.web.app)
 
+**Product walkthrough**: step-by-step production feature guide — see [`WALKTHROUGH.md`](WALKTHROUGH.md) (also summarized [below](#product-walkthrough)).
+
 ---
 
 ## What problem this solves
@@ -66,6 +68,42 @@ Chikitsalay Setu turns scattered operational updates and citizen inputs into **a
 
 ---
 
+## Product walkthrough
+
+Use this as a quick orientation for the **live production app**. For screens, clicks, transfer storyline, languages, and a 10–12 minute demo script, see the full guide:
+
+→ **[`WALKTHROUGH.md`](WALKTHROUGH.md)**
+
+### Demo credentials
+
+| Role | How to enter | Credentials |
+|------|--------------|-------------|
+| **Administrator** | Homepage → *Login as Administrator* | `admin@dharwad.demo` / `Admin@123456` |
+| **Health Center Staff** | Homepage → *Login as Health Center* | `phc-narendra@dharwad.demo` / `Staff@123456` |
+| **Citizen** | Homepage → *Login as Citizen* | Click **Continue as Citizen** (anonymous Auth) |
+
+Demo geography: **Dharwad district** — PHC Narendra, PHC Hebballi, CHC Kalghatgi, PHC Mugad, CHC Kundgol.
+
+### What to explore by role
+
+| Role | Start here | Highlights |
+|------|------------|------------|
+| **Admin** | District Control Center after login | Live KPIs, auto/manual Gemini audit, geospatial map + redistribution routes, Notify Health Centres transfer flow, intervention table, citizen Feedback Summarize |
+| **Staff** | Health Facility Portal (+ Voice Reporter sub-nav) | Daily logs (doctors/beds/footfall), diagnostic audit toggles, pharmacy stock edits, district transfer confirmations, multilingual voice → Gemini → Firestore commit |
+| **Citizen** | Citizen Health Portal | Search/filter centres, bed/doctor availability, Get Directions, star ratings + category tags, health schemes, helplines; UI in en/hi/kn/te/ta |
+
+### Suggested end-to-end path
+
+1. **Citizen** — find a centre, open directions, optionally leave feedback.
+2. **Staff** — lower a medicine stock (or use a Voice Reporter preset) so the district sees a shortage.
+3. **Admin** — let the Gemini audit run; review flags, map routes, and Smart Transfer Suggestions; click **Notify Health Centres**.
+4. **Staff** — **Mark as Completed** on the transfer notification; adjust pharmacy stock.
+5. **Admin** — confirm the transfer under Completed; use **Summarize Feedback** if citizens have reviewed.
+
+Homepage also supports language switching, text size controls (`A−` / `A` / `A+`), helplines (104 / 108 / 181 / 1098), and rotating government announcements before any login.
+
+---
+
 ## Architecture (high level)
 
 ```
@@ -84,7 +122,7 @@ React SPA (Firebase Hosting)
         └── provisionCitizenProfile   → anonymous citizen role provisioning
 ```
 
-For a deeper explanation (security model, data model, scaling notes), see [`ARCHITECTURE.md`](ARCHITECTURE.md).
+For a deeper explanation (security model, data model, scaling notes), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For a full production UI walkthrough and demo script, see [`WALKTHROUGH.md`](WALKTHROUGH.md).
 
 ---
 
@@ -119,7 +157,8 @@ For a deeper explanation (security model, data model, scaling notes), see [`ARCH
 ├── firestore.rules       # Role-based Firestore security rules
 ├── firestore.indexes.json
 ├── firebase.json         # Hosting, emulators, functions config
-├── ARCHITECTURE.md       # System design + detailed setup
+├── ARCHITECTURE.md       # System design + data model + security
+├── WALKTHROUGH.md        # Production feature walkthrough + demo script
 └── instructions/         # Hackathon challenge brief
 ```
 
