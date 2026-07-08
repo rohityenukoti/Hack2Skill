@@ -58,7 +58,7 @@ Chikitsalay Setu is a single-page React application backed by Firebase. Operatio
 | `AdminDashboard` | Admin | District KPIs, AI audit, map, transfers, feedback analytics, BQ sync |
 | `PHCPortal` | Health centre | Centre status/inventory updates, transfer confirmations |
 | `VoiceAssistant` | Health centre | Audio capture → Speech-to-Text → Gemini parsing → Firestore write |
-| `CitizenPortal` | Citizen | Centre search, directions, ratings, feedback, scheme info |
+| `CitizenPortal` | Citizen | Centre search, directions, ratings, **text/voice feedback**, scheme info |
 | `InteractiveMap` / `CanvasMap` | Admin | Geospatial centre map with redistribution routes |
 | `DevToolsModal` | Dev only | Seed, reset, test Functions/translation (`import.meta.env.DEV`) |
 
@@ -108,7 +108,8 @@ The app runs in one of two modes, determined at init by `firebaseApp.js`:
 - All data stored in localStorage keys: `smart_health_centers`, `smart_health_inventory`, `smart_health_feedback`, `smart_health_transfers`.
 - Auth uses in-memory mock users (`auth.js`).
 - AI uses client-side `getSimulatedInsights()` with artificial delay (`gemini.js`).
-- Voice presets work; live microphone transcription requires Cloud Functions.
+- Voice presets work; live microphone transcription requires Cloud Functions **and** a browser secure context (HTTPS or `localhost`).
+- Citizen feedback also includes **simulated voice feedback samples** so the UX remains demoable without mic/STT.
 
 ```
                     ┌─────────────────┐

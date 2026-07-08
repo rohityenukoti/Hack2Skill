@@ -386,7 +386,13 @@ Form fields:
 | Name | Optional (defaults to anonymous) |
 | Star rating (1–5) | Required; hover labels Poor → Excellent |
 | Category tags | Cleanliness, Staff Behavior, Medicine Availability, Wait Time, Facilities, Overall Experience |
-| Detailed text | Free-form |
+| Detailed text | Free-form; can be filled by typing **or voice** |
+
+Voice input:
+
+- Click **Record Feedback** to start recording and allow microphone permissions when prompted.
+- Click again to stop; the app runs **Speech-to-Text** and auto-fills the “Detailed Feedback” textbox.
+- If microphone access isn’t available (or the site isn’t running in a **secure context** — HTTPS or `localhost`), use the built-in **simulated voice feedback** sample buttons to populate feedback text for demos.
 
 Submit stores feedback under `centers/{id}/feedback`. Success state thanks the user, then resets.
 

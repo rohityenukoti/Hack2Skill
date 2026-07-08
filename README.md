@@ -56,6 +56,7 @@ Chikitsalay Setu turns scattered operational updates and citizen inputs into **a
 - Search and filter PHCs/CHCs by type, status, and availability
 - **Get Directions** via Google Maps
 - Star ratings, category tags, and detailed feedback submission
+- **Voice feedback** — record audio → Speech-to-Text → auto-fill the feedback textbox (with simulated samples when voice is unavailable)
 - **Health schemes** info (Ayushman Bharat, JSY, etc.) with on-demand translation
 - Supported languages: **English, Hindi, Kannada, Telugu, Tamil** (with localStorage translation cache)
 
@@ -374,6 +375,7 @@ This stack fits comfortably within free tiers for a pilot/demo, but you should s
 | Functions failing on Gemini | Confirm `GEMINI_API_KEY` secret is set and redeployed |
 | Maps not loading | Set `VITE_GOOGLE_MAPS_API_KEY` and restrict in GCP Console |
 | Translation errors | Enable `translate.googleapis.com` in GCP Console |
+| Microphone not prompting / voice feedback not working | Browser mic capture requires a **secure context** (HTTPS or `localhost`). If Cloud Functions aren’t configured, use the built-in **simulated voice feedback** samples or type manually. |
 | Dev tools not visible | Dev tools render only in `import.meta.env.DEV` builds |
 
 ---
