@@ -3,6 +3,7 @@ import { Mic, MicOff, Play, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { parseVoiceInput } from '../services/gemini';
 import { updateInventoryItem, updateCenterDetails } from '../services/firebase';
 import { callTranscribeAudio, isCloudFunctionsAvailable } from '../services/api';
+import CustomSelect from './CustomSelect';
 
 const SPEECH_PRESETS = [
   {
@@ -192,11 +193,15 @@ export default function VoiceAssistant({ centers, activeCenterId }) {
 
           <div style={{ marginBottom: '1.5rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
             <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Reporting Health Center</label>
-            <select value={selectedCenterId} onChange={(e) => setSelectedCenterId(e.target.value)} style={{ width: '100%' }}>
-              {centers.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={selectedCenterId}
+              onChange={setSelectedCenterId}
+              ariaLabel="Reporting Health Center"
+              options={centers.map((c) => ({
+                value: c.id,
+                label: `${c.name} (${c.type})`,
+              }))}
+            />
           </div>
 
           <button onClick={handleMicClick} className={`mic-button ${isRecording ? 'recording' : ''}`} disabled={isTranscribing}>

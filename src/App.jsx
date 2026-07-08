@@ -23,6 +23,7 @@ import LoginModal from './components/LoginModal';
 import CitizenPortal from './components/CitizenPortal';
 import DevToolsModal from './components/DevToolsModal';
 import { LANGUAGE_OPTIONS, getStoredLanguage, setStoredLanguage } from './constants/languages';
+import CustomSelect from './components/CustomSelect';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -210,17 +211,18 @@ export default function App() {
             <a href="#main-content" className="gov-top-bar-link">Skip to Main Content</a>
             {userRole === 'citizen' && (
               <div className="gov-accessibility-controls">
-                <select
+                <CustomSelect
                   className="gov-language-select"
+                  variant="dark"
                   value={preferredLanguage}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  aria-label="Select language"
+                  onChange={handleLanguageChange}
+                  ariaLabel="Select language"
                   disabled={citizenIsTranslating}
-                >
-                  {LANGUAGE_OPTIONS.map((opt) => (
-                    <option key={opt.code} value={opt.code}>{opt.label}</option>
-                  ))}
-                </select>
+                  options={LANGUAGE_OPTIONS.map((opt) => ({
+                    value: opt.code,
+                    label: opt.label,
+                  }))}
+                />
                 {citizenIsTranslating && (
                   <span className="gov-translating-label">Translating...</span>
                 )}

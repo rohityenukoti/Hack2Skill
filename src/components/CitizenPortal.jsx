@@ -26,6 +26,7 @@ import { saveFeedback, getFeedbackForCenter } from '../services/firebase';
 import { translateCitizenPortalContent } from '../services/translation';
 import { callTranscribeAudio, isCloudFunctionsAvailable } from '../services/api';
 import { ensureCallableAuth } from '../services/auth';
+import CustomSelect from './CustomSelect';
 
 const UI_STRINGS = {
   pageTitle: 'Citizen Health Portal',
@@ -450,15 +451,18 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
             </div>
             <div className="citizen-filter-group">
               <Filter size={16} />
-              <select
+              <CustomSelect
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={setFilterType}
                 className="citizen-filter-select"
-              >
-                <option value="all">{ui.filterAll}</option>
-                <option value="PHC">{ui.filterPhc}</option>
-                <option value="CHC">{ui.filterChc}</option>
-              </select>
+                variant="compact"
+                ariaLabel={ui.filterAll}
+                options={[
+                  { value: 'all', label: ui.filterAll },
+                  { value: 'PHC', label: ui.filterPhc },
+                  { value: 'CHC', label: ui.filterChc },
+                ]}
+              />
             </div>
           </div>
 
@@ -591,17 +595,17 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
                 {/* Select Center */}
                 <div className="login-field">
                   <label className="login-field-label">{ui.feedbackCenterLabel}</label>
-                  <select
+                  <CustomSelect
                     value={feedbackCenter}
-                    onChange={(e) => setFeedbackCenter(e.target.value)}
-                    style={{ width: '100%' }}
+                    onChange={setFeedbackCenter}
+                    placeholder={ui.feedbackCenterPlaceholder}
+                    ariaLabel={ui.feedbackCenterLabel}
                     required
-                  >
-                    <option value="">{ui.feedbackCenterPlaceholder}</option>
-                    {centers.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
-                    ))}
-                  </select>
+                    options={centers.map((c) => ({
+                      value: c.id,
+                      label: `${c.name} (${c.type})`,
+                    }))}
+                  />
                 </div>
 
                 {/* Name (optional) */}

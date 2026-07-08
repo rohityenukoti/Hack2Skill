@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Plus, Minus, UserCheck, Stethoscope, Bed, TrendingUp, AlertTriangle, Activity, Bell, CheckCircle, RefreshCw } from 'lucide-react';
 import { subscribeToInventory, subscribeToCenterTransfers, updateCenterDetails, updateInventoryItem, confirmTransferCompletion } from '../services/firebase';
+import CustomSelect from './CustomSelect';
 
 export default function PHCPortal({ centers, activeCenterId, onCenterChange, lockedCenterId }) {
   const [selectedCenterId, setSelectedCenterId] = useState(lockedCenterId || activeCenterId || centers[0]?.id || "");
@@ -41,8 +42,7 @@ export default function PHCPortal({ centers, activeCenterId, onCenterChange, loc
 
   const pendingTransfers = centerTransfers.filter((t) => t.status === 'notified');
 
-  const handleCenterSelect = (e) => {
-    const newId = e.target.value;
+  const handleCenterSelect = (newId) => {
     setSelectedCenterId(newId);
     if (onCenterChange) {
       onCenterChange(newId);
@@ -129,11 +129,16 @@ export default function PHCPortal({ centers, activeCenterId, onCenterChange, loc
           {lockedCenterId ? (
             <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{activeCenter?.name}</span>
           ) : (
-            <select value={selectedCenterId} onChange={handleCenterSelect} style={{ width: '220px' }}>
-              {centers.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={selectedCenterId}
+              onChange={handleCenterSelect}
+              style={{ width: '220px' }}
+              ariaLabel="Managing Facility"
+              options={centers.map((c) => ({
+                value: c.id,
+                label: `${c.name} (${c.type})`,
+              }))}
+            />
           )}
         </div>
       </div>

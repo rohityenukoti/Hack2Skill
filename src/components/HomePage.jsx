@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { LANGUAGE_OPTIONS } from '../constants/languages';
 import { translateHomePageContent } from '../services/translation';
+import CustomSelect from './CustomSelect';
 
 const UI_STRINGS = {
   topBarTitle: 'Chikitsalay Setu | चिकित्सालय सेतु',
@@ -269,17 +270,18 @@ export default function HomePage({ onLogin, language = 'en', onLanguageChange })
           <div className="gov-top-bar-right">
             <a href="#features" className="gov-top-bar-link">{ui.skipToMain}</a>
             <div className="gov-accessibility-controls">
-              <select
+              <CustomSelect
                 className="gov-language-select"
+                variant="dark"
                 value={language}
-                onChange={(e) => onLanguageChange?.(e.target.value)}
-                aria-label="Select language"
+                onChange={(code) => onLanguageChange?.(code)}
+                ariaLabel="Select language"
                 disabled={isTranslating}
-              >
-                {LANGUAGE_OPTIONS.map((opt) => (
-                  <option key={opt.code} value={opt.code}>{opt.label}</option>
-                ))}
-              </select>
+                options={LANGUAGE_OPTIONS.map((opt) => ({
+                  value: opt.code,
+                  label: opt.label,
+                }))}
+              />
               {isTranslating && (
                 <span className="gov-translating-label">{ui.translating}</span>
               )}
