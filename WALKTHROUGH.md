@@ -57,7 +57,7 @@ Demo geography is **Dharwad district** with five facilities:
 | `phc-mugad` | PHC Mugad | PHC |
 | `chc-kundgol` | CHC Kundgol | CHC |
 
-Staff login for `phc-narendra` is locked to that facility (you cannot switch to another centre).
+Staff login for `phc-narendra` is locked to that facility (the centre cannot be switched).
 
 ---
 
@@ -139,7 +139,7 @@ A consistent chrome appears:
 
 - Top bar with platform name + **Logout**
 - For citizens: language selector stays available  
-- Brand header with hospital emoji + tagline  
+- Brand header with platform mark and tagline  
 - Tricolor ribbon  
 
 Staff also get a sub-nav: **Health Facility Portal** | **Voice Reporter**.
@@ -157,7 +157,7 @@ Sign in as `admin@dharwad.demo`. This is the district operations cockpit.
 | **Trigger Gemini AI Audit** | On-demand call to `analyzeDistrict` (Gemini 2.0 Flash). Recomputes alerts, forecasts, redistributions, and intervention briefs. |
 | *(Auto-run)* | Audit also runs **once automatically** when all centre inventories finish loading. |
 
-> **Production note:** Manual BigQuery sync is a development-only button. In production, **`scheduledBigQuerySync`** snapshots centres/inventory to BigQuery daily.
+> BigQuery analytics run via **`scheduledBigQuerySync`**, which snapshots centres and inventory daily.
 
 ### 5.2 Live KPI strip
 
@@ -272,7 +272,7 @@ When the admin has notified a redistribution involving this centre, a panel appe
 - Role-aware copy:
   - **Donor**: “Send supply … Update your stock after the handoff.”  
   - **Recipient**: “Receive supply … Update your stock once received.”  
-- Confirmation status for you vs the other centre  
+- Confirmation status for this centre vs the other centre  
 - **Mark as Completed** → sets `donorConfirmed` or `recipientConfirmed`  
 - When **both** confirm → transfer becomes `completed` (visible to admin)
 
@@ -476,7 +476,7 @@ Cloud Translation runs server-side through `translateTextFn` (batch up to 80 str
 
 ## 11. What happens behind the scenes
 
-You do not need this for a demo, but it explains production behaviour.
+Optional technical context for how the production system behaves under the hood.
 
 ### Realtime data
 
@@ -528,7 +528,7 @@ Firestore listeners keep centres, inventory, transfers, and feedback in sync acr
 | **5:00–5:30** | Logout → Login as **Admin** |
 | **5:30–8:00** | KPIs, map (critical tooltips), auto/manual Gemini audit, flags + briefs |
 | **8:00–9:30** | Notify a Smart Transfer; explain dual confirmation model |
-| **9:30–11:00** | Show Contingent staff confirmation / completed transfer path; open Citizen Feedback + Summarize |
+| **9:30–11:00** | Confirm transfer as staff (or show completed transfer path); open Citizen Feedback + Summarize |
 | **11:00–12:00** | Wrap: three portals, one live pipe, AI + voice + multilingual citizen loop |
 
 ---

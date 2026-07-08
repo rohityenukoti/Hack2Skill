@@ -42,7 +42,7 @@ Chikitsalay Setu turns scattered operational updates and citizen inputs into **a
 - **Supply transfer workflow** — AI recommendations → notify centres → donor/recipient confirmation → completion tracking
 - **Underperforming & bottlenecks panel** — AI-flagged centres with intervention briefs
 - **Citizen feedback hub** — district ratings, per-centre reviews, AI-generated feedback summaries
-- **BigQuery sync** — on-demand admin trigger + scheduled daily snapshot
+- **BigQuery sync** — scheduled daily snapshot (on-demand sync available in development builds)
 
 ### PHC/CHC staff portal
 
@@ -64,14 +64,13 @@ Chikitsalay Setu turns scattered operational updates and citizen inputs into **a
 
 - **Server-side AI** — Gemini API key never exposed to the browser
 - **Rate limiting** — 15 Cloud Function calls/min per user
-- **Offline-friendly demo mode** — falls back to localStorage + simulated AI when Firebase is not configured (see `ARCHITECTURE.md`)
-- **Dev tools** (development builds only) — seed data, reset DB, test Functions/translation
+- **Graceful degradation** — localStorage + simulated AI when Firebase is not configured (see [`ARCHITECTURE.md`](ARCHITECTURE.md))
 
 ---
 
 ## Product walkthrough
 
-Use this as a quick orientation for the **live production app**. For screens, clicks, transfer storyline, languages, and a 10–12 minute demo script, see the full guide:
+Quick orientation for the **live production app**. For screens, clicks, transfer storyline, languages, and a 10–12 minute demo script, see the full guide:
 
 → **[`WALKTHROUGH.md`](WALKTHROUGH.md)**
 
@@ -123,7 +122,7 @@ React SPA (Firebase Hosting)
         └── provisionCitizenProfile   → anonymous citizen role provisioning
 ```
 
-For a deeper explanation (security model, data model, scaling notes), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For a full production UI walkthrough and demo script, see [`WALKTHROUGH.md`](WALKTHROUGH.md).
+For a deeper explanation (security model, data model, scaling notes), see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
@@ -145,40 +144,49 @@ For a deeper explanation (security model, data model, scaling notes), see [`ARCH
 
 ---
 
+## Hackathon context
+
+Built for **Build with AI: Code for Communities** (Smart Health) to demonstrate:
+
+- end-to-end, working prototype deployable for district pilots
+- meaningful use of Google Cloud + Gemini AI across operations, voice, and citizen engagement
+- clear scaling path via Firestore (real-time ops) + BigQuery (batch analytics)
+
+---
+
 ## Repository layout
 
 ```
 ├── src/
 │   ├── components/       # React UI (AdminDashboard, PHCPortal, CitizenPortal, etc.)
 │   ├── services/         # Firebase, API, Gemini, translation, auth
-│   ├── constants/      # Language options
-│   └── utils/            # Mock data for offline demo
+│   ├── constants/        # Language options
+│   └── utils/            # Mock data for offline demo fallback
 ├── functions/            # Cloud Functions (AI, speech, BigQuery, translation, seed)
 ├── .github/workflows/    # CI/CD (firebase-deploy.yml)
 ├── firestore.rules       # Role-based Firestore security rules
 ├── firestore.indexes.json
 ├── firebase.json         # Hosting, emulators, functions config
 ├── ARCHITECTURE.md       # System design + data model + security
-├── WALKTHROUGH.md        # Production feature walkthrough + demo script
-└── instructions/         # Hackathon challenge brief
+└── WALKTHROUGH.md        # Production feature walkthrough + demo script
 ```
 
 ---
 
-## Prerequisites
+## Local development
+
+For cloning and running the repository locally.
+
+### Prerequisites
 
 - **Node.js**: 18+ (Cloud Functions target **Node 20**)
 - **npm**
 - **Firebase CLI**: via devDependency (`firebase-tools`) or globally
 - A **Firebase project** on the **Blaze** plan (required for Cloud Functions + external APIs)
 
----
+### Environment variables
 
-## Environment variables
-
-Create a `.env` in the repo root by copying `.env.example`.
-
-### Client (`.env`)
+Copy `.env.example` to `.env` and set Firebase web config values.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -191,46 +199,27 @@ Create a `.env` in the repo root by copying `.env.example`.
 | `VITE_FIREBASE_MEASUREMENT_ID` | No | Google Analytics |
 | `VITE_GOOGLE_MAPS_API_KEY` | No | Recommended for map & directions |
 | `VITE_RECAPTCHA_SITE_KEY` | No | App Check reCAPTCHA v3 (production) |
-| `VITE_USE_FIREBASE_EMULATORS` | No | Set `true` for local emulator dev |
+| `VITE_USE_FIREBASE_EMULATORS` | No | Set `true` for local emulator development |
 
-> The Firebase web API key is client-safe, but lock down your project with Firestore rules and App Check in production.
+> The Firebase web API key is client-safe. Production protection relies on Firestore rules and App Check.
 
-### Server secrets (Cloud Functions)
-
-Store server-side secrets using **Firebase Functions secrets** (not in `.env`):
+**Server secrets** (Cloud Functions, not `.env`):
 
 ```bash
 firebase functions:secrets:set GEMINI_API_KEY
 ```
 
----
-
-## Quickstart (local)
-
-### 1) Install dependencies
+### Quickstart
 
 ```bash
 npm install
 cd functions && npm install && cd ..
-```
-
-### 2) Configure `.env`
-
-Copy `.env.example` to `.env` and fill in your Firebase web config.
-
-### 3) Run the frontend
-
-```bash
 npm run dev
 ```
 
 Vite dev server runs at `http://localhost:3000`.
 
----
-
-## Local dev with Firebase emulators
-
-Emulator ports (from `firebase.json`):
+### Firebase emulators
 
 | Service | Port |
 |---------|------|
@@ -240,23 +229,17 @@ Emulator ports (from `firebase.json`):
 | Hosting | 5000 |
 | Emulator UI | enabled |
 
-**Terminal 1** — start emulators:
-
 ```bash
+# Terminal 1
 firebase emulators:start
-```
 
-**Terminal 2** — frontend with emulators:
-
-```bash
+# Terminal 2
 VITE_USE_FIREBASE_EMULATORS=true npm run dev
 ```
 
----
+### Deployment
 
-## Deployment
-
-### Deploy Cloud Functions + Firestore rules
+**Cloud Functions + Firestore rules:**
 
 ```bash
 cd functions && npm install
@@ -264,45 +247,23 @@ firebase functions:secrets:set GEMINI_API_KEY
 cd .. && firebase deploy --only functions,firestore:rules
 ```
 
-### Seed demo accounts / data
-
-After deploying, seed demo users and sample data via the admin **System Setup** panel (dev tools), or via the Functions shell:
+**Seed demo accounts** (Functions shell after deploy):
 
 ```bash
 firebase functions:shell
 # > seedDemoAccounts({confirmSeed: true})
 ```
 
-**Demo credentials:**
-
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | `admin@dharwad.demo` | `Admin@123456` |
-| PHC Staff | `phc-narendra@dharwad.demo` | `Staff@123456` |
-| Citizen | — | Click **Continue as Citizen** (anonymous auth) |
-
-### Build + deploy Hosting
+**Hosting:**
 
 ```bash
 npm run build
 firebase deploy --only hosting
 ```
 
-### CI/CD (GitHub Actions)
+**CI/CD**: Pushes to `main`/`master` trigger [`.github/workflows/firebase-deploy.yml`](.github/workflows/firebase-deploy.yml) (build with `VITE_*` secrets → Hosting deploy). Required GitHub secrets: `FIREBASE_SERVICE_ACCOUNT`, `VITE_FIREBASE_*`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_RECAPTCHA_SITE_KEY`.
 
-Pushes to `main`/`master` trigger [`.github/workflows/firebase-deploy.yml`](.github/workflows/firebase-deploy.yml), which:
-
-1. Installs dependencies and builds the frontend with `VITE_*` secrets
-2. Installs Functions dependencies
-3. Deploys to Firebase Hosting via `FirebaseExtended/action-hosting-deploy`
-
-**Required GitHub secrets**: `FIREBASE_SERVICE_ACCOUNT`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_RECAPTCHA_SITE_KEY`.
-
----
-
-## Scripts
-
-**Root `package.json`:**
+### Scripts
 
 | Command | Description |
 |---------|-------------|
@@ -310,19 +271,10 @@ Pushes to `main`/`master` trigger [`.github/workflows/firebase-deploy.yml`](.git
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview built app locally |
 | `npm run lint:functions` | Syntax-check Functions modules |
-
-**`functions/package.json`:**
-
-| Command | Description |
-|---------|-------------|
-| `npm --prefix functions run lint` | Node syntax checks |
 | `npm --prefix functions run serve` | Functions emulator only |
-| `npm --prefix functions run shell` | Interactive Functions shell |
 | `npm --prefix functions run deploy` | Deploy Functions |
 
----
-
-## Data model (Firestore)
+### Data model (Firestore)
 
 ```
 users/{uid}                         → { role, centerId?, districtId?, email }
@@ -332,14 +284,9 @@ centers/{centerId}/feedback/{id}    → citizen feedback entries
 transfers/{transferId}              → redistribution requests + confirmation status
 ```
 
-**BigQuery tables** (analytics snapshots):
+**BigQuery tables**: `health_ops.centers_daily`, `health_ops.inventory_daily`
 
-- `health_ops.centers_daily`
-- `health_ops.inventory_daily`
-
----
-
-## Security model (summary)
+### Security model (summary)
 
 Firestore rules (`firestore.rules`) enforce:
 
@@ -348,25 +295,21 @@ Firestore rules (`firestore.rules`) enforce:
 - health centre staff can update **only their own** centre and confirm related transfers
 - citizens can read centres/inventory and create feedback
 
-Operational guidance:
+Production hardening:
 
-- keep **Gemini key server-side** as a Functions secret (`GEMINI_API_KEY`)
-- enable **App Check** in production and set `VITE_RECAPTCHA_SITE_KEY`
-- restrict **Maps API keys** by HTTP referrer
+- **Gemini key** stored server-side as a Functions secret (`GEMINI_API_KEY`)
+- **App Check** enabled in production via `VITE_RECAPTCHA_SITE_KEY`
+- **Maps API keys** restricted by HTTP referrer
 
----
+### Cost controls
 
-## Cost controls (recommended for demos)
+The stack fits within free tiers for a pilot/demo. Recommended safeguards:
 
-This stack fits comfortably within free tiers for a pilot/demo, but you should still:
+- small GCP budget alerts (e.g. $1, $5)
+- AI/voice endpoints behind Functions with rate limiting (15 calls/min/user)
+- Maps API key restrictions and quotas
 
-- set a **small budget alert** (e.g. $1, $5) in GCP billing
-- keep AI/voice endpoints behind Functions with rate limiting (15 calls/min/user)
-- restrict Maps API keys and set quotas
-
----
-
-## Troubleshooting
+### Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
@@ -375,23 +318,5 @@ This stack fits comfortably within free tiers for a pilot/demo, but you should s
 | Functions failing on Gemini | Confirm `GEMINI_API_KEY` secret is set and redeployed |
 | Maps not loading | Set `VITE_GOOGLE_MAPS_API_KEY` and restrict in GCP Console |
 | Translation errors | Enable `translate.googleapis.com` in GCP Console |
-| Microphone not prompting / voice feedback not working | Browser mic capture requires a **secure context** (HTTPS or `localhost`). If Cloud Functions aren’t configured, use the built-in **simulated voice feedback** samples or type manually. |
-| Dev tools not visible | Dev tools render only in `import.meta.env.DEV` builds |
-
----
-
-## Hackathon context
-
-Built for **Build with AI: Code for Communities** (Smart Health) to demonstrate:
-
-- end-to-end, working prototype deployable for district pilots
-- meaningful use of Google Cloud + Gemini AI across operations, voice, and citizen engagement
-- clear scaling path via Firestore (real-time ops) + BigQuery (batch analytics)
-
-See [`instructions/Build with AI_ Code for Communities.md`](instructions/Build%20with%20AI_%20Code%20for%20Communities.md) for the full challenge brief.
-
----
-
-## License
-
-Add a license file if you plan to open-source this repository.
+| Microphone / voice feedback | Mic capture requires a **secure context** (HTTPS or `localhost`). Without Cloud Functions, use simulated voice samples or type manually. |
+| Dev tools not visible | Seed/reset tools render only in `import.meta.env.DEV` builds |

@@ -40,7 +40,7 @@ Chikitsalay Setu is a single-page React application backed by Firebase. Operatio
 |-----------|----------------|
 | **Server-side AI** | Gemini key stored as Functions secret (`GEMINI_API_KEY`) |
 | **Realtime ops** | Firestore `onSnapshot` listeners for centres, inventory, transfers, feedback |
-| **Graceful degradation** | localStorage + client-side simulation when Firebase is not configured |
+| **Graceful degradation** | localStorage + client-side simulation when Firebase is not configured (secondary to live Firebase) |
 | **Role isolation** | Firestore security rules + scoped queries (staff read own centre only) |
 | **Auditability** | `updatedAt`, `source` (`portal` \| `voice` \| `admin`) on operational writes |
 | **Cost control** | Rate limiting (15 calls/min/user), translation batching, scheduled BQ sync |
@@ -92,6 +92,8 @@ Chikitsalay Setu is a single-page React application backed by Firebase. Operatio
 ---
 
 ## 3. Dual-mode operation
+
+**Primary path:** production / live Firebase (Hosting + Auth + Firestore + Cloud Functions). Offline demo mode is graceful degradation for local development or when Firebase config is missing.
 
 The app runs in one of two modes, determined at init by `firebaseApp.js`:
 
@@ -382,7 +384,7 @@ Role is resolved via `get(/users/{uid})` on every request — users cannot self-
 
 - Firebase web API key is public by design; protection comes from rules + App Check.
 - Maps API key should be HTTP-referrer restricted in GCP Console.
-- Dev tools (seed, reset, BQ sync test) render only when `import.meta.env.DEV`.
+- Seed/reset/BQ sync test tools render only when `import.meta.env.DEV`.
 
 ---
 
@@ -461,12 +463,12 @@ Without Firebase configured, the app runs entirely in offline demo mode (no emul
 
 The stack targets GCP/Firebase free tiers for a single-district pilot:
 
-- Set **$1 and $5 budget alerts** in GCP Console immediately after enabling Blaze billing.
-- Gemini proxied server-side (AI Studio free tier for demos).
-- Rate limiting prevents runaway Function invocations.
-- Translation batching reduces API calls; results cached in localStorage.
-- BigQuery sync is daily (scheduled) plus optional on-demand admin trigger.
-- Restrict Maps API keys by HTTP referrer.
+- GCP budget alerts (e.g. $1 and $5) after enabling Blaze billing
+- Gemini proxied server-side (AI Studio free tier suitable for demos)
+- Rate limiting prevents runaway Function invocations
+- Translation batching reduces API calls; results cached in localStorage
+- BigQuery sync is daily (scheduled) plus optional on-demand admin trigger in development
+- Maps API keys restricted by HTTP referrer
 
 ---
 
