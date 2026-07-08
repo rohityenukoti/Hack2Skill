@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   MapPin,
   Bed,
@@ -116,6 +116,21 @@ const HEALTH_SCHEMES = [
   }
 ];
 
+const VOICE_FEEDBACK_PRESETS = [
+  {
+    label: 'Simulated voice feedback (English)',
+    text: 'The staff were polite, but the waiting time was long. Please add a token system and improve seating in the waiting area.',
+  },
+  {
+    label: 'Simulated voice feedback (Hindi)',
+    text: 'स्टाफ़ अच्छा था, लेकिन बहुत देर तक इंतज़ार करना पड़ा। कृपया बैठने की व्यवस्था और टोकन सिस्टम बेहतर करें।',
+  },
+  {
+    label: 'Simulated voice feedback (Kannada)',
+    text: 'ಸಿಬ್ಬಂದಿ ಒಳ್ಳೆಯವರಿದ್ದರು, ಆದರೆ ಕಾಯುವ ಸಮಯ ತುಂಬಾ ಹೆಚ್ಚು. ದಯವಿಟ್ಟು ಟೋಕನ್ ವ್ಯವಸ್ಥೆ ಮತ್ತು ಕುಳಿತುಕೊಳ್ಳುವ ವ್ಯವಸ್ಥೆ ಸುಧಾರಿಸಿ.',
+  },
+];
+
 export default function CitizenPortal({ centers, language = 'en', onTranslatingChange }) {
   const [activeTab, setActiveTab] = useState('find');
   const [searchQuery, setSearchQuery] = useState('');
@@ -131,8 +146,9 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceTranscribing, setIsVoiceTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState('');
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [voiceChunks, setVoiceChunks] = useState([]);
+  const mediaRecorderRef = useRef(null);
+  const voiceChunksRef = useRef([]);
+  const voiceStreamRef = useRef(null);
   const [ui, setUi] = useState(UI_STRINGS);
   const [translatedSchemes, setTranslatedSchemes] = useState(HEALTH_SCHEMES);
   const [translatedCategories, setTranslatedCategories] = useState(FEEDBACK_CATEGORIES);
@@ -279,30 +295,41 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
   }
 
   const stopVoiceRecording = async () => {
-    if (!mediaRecorder) return;
+    if (!mediaRecorderRef.current) return;
     setIsVoiceRecording(false);
     setIsVoiceTranscribing(true);
     setVoiceError('');
 
     return new Promise((resolve) => {
-      mediaRecorder.onstop = async () => {
+      mediaRecorderRef.current.onstop = async () => {
         try {
-          const blob = new Blob(voiceChunks, { type: 'audio/webm;codecs=opus' });
-          setVoiceChunks([]);
+          const blob = new Blob(voiceChunksRef.current, { type: 'audio/webm;codecs=opus' });
+          voiceChunksRef.current = [];
+
+          if (!blob || blob.size === 0) {
+            setVoiceError('No audio captured. Please try again (and allow mic permissions) or use a simulated sample.');
+            resolve();
+            return;
+          }
 
           if (!isCloudFunctionsAvailable()) {
-            setVoiceError('Voice-to-text is unavailable until Firebase Cloud Functions are configured.');
+            setVoiceError('Voice-to-text is unavailable until Firebase Cloud Functions are configured. Use a simulated sample below.');
             resolve();
             return;
           }
 
           await ensureCallableAuth();
           const audioBase64 = await blobToBase64(blob);
+          if (!audioBase64) {
+            setVoiceError('Could not process audio recording. Please try again or use a simulated sample.');
+            resolve();
+            return;
+          }
           const result = await callTranscribeAudio(audioBase64, 'WEBM_OPUS', 48000);
           const transcript = result?.transcript || '';
 
           if (!transcript) {
-            setVoiceError('Could not transcribe audio. Please try again or type manually.');
+            setVoiceError('Could not transcribe audio. Please try again, type manually, or use a simulated sample.');
             resolve();
             return;
           }
@@ -315,11 +342,17 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
           console.error(err);
           setVoiceError(err?.message || 'Transcription failed. Please try again or type manually.');
         } finally {
+          try {
+            voiceStreamRef.current?.getTracks?.().forEach((t) => t.stop());
+          } catch {
+            // ignore
+          }
+          voiceStreamRef.current = null;
           setIsVoiceTranscribing(false);
           resolve();
         }
       };
-      mediaRecorder.stop();
+      mediaRecorderRef.current.stop();
     });
   };
 
@@ -333,22 +366,36 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
 
     setVoiceError('');
     try {
+      if (!window.isSecureContext) {
+        setVoiceError('Microphone recording requires HTTPS (secure context). Use a simulated sample below or run on https / localhost.');
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setVoiceError('Microphone recording is not supported in this browser. Use a simulated sample below.');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceStreamRef.current = stream;
       const rec = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-      setVoiceChunks([]);
+      voiceChunksRef.current = [];
       rec.ondataavailable = (e) => {
-        if (e.data.size > 0) setVoiceChunks((prev) => [...prev, e.data]);
+        if (e.data.size > 0) voiceChunksRef.current.push(e.data);
       };
-      rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-      };
-      setMediaRecorder(rec);
+      mediaRecorderRef.current = rec;
       rec.start();
       setIsVoiceRecording(true);
     } catch (err) {
       console.error(err);
-      setVoiceError('Microphone access denied. Please allow mic permissions or type your feedback.');
+      setVoiceError('Microphone access failed (permission denied or unavailable). Use a simulated sample below or type your feedback.');
     }
+  };
+
+  const applyVoicePreset = (presetText) => {
+    setVoiceError('');
+    setFeedbackText((prev) => {
+      const trimmedPrev = (prev || '').trim();
+      return trimmedPrev ? `${trimmedPrev}\n${presetText}` : presetText;
+    });
   };
 
   return (
@@ -651,6 +698,21 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
                       {voiceError}
                     </p>
                   )}
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', margin: '0 0 0.75rem' }}>
+                    {VOICE_FEEDBACK_PRESETS.map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => applyVoicePreset(p.text)}
+                        style={{ padding: '0.45rem 0.65rem', fontSize: '0.85rem' }}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <textarea
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
