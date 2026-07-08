@@ -17,10 +17,15 @@ import {
   Users,
   Sparkle,
   Thermometer,
-  ShieldCheck
+  ShieldCheck,
+  Mic,
+  MicOff,
+  RefreshCw
 } from 'lucide-react';
 import { saveFeedback, getFeedbackForCenter } from '../services/firebase';
 import { translateCitizenPortalContent } from '../services/translation';
+import { callTranscribeAudio, isCloudFunctionsAvailable } from '../services/api';
+import { ensureCallableAuth } from '../services/auth';
 
 const UI_STRINGS = {
   pageTitle: 'Citizen Health Portal',
@@ -123,6 +128,11 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
   const [feedbackCategories, setFeedbackCategories] = useState([]);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [feedbackName, setFeedbackName] = useState('');
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [isVoiceTranscribing, setIsVoiceTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [voiceChunks, setVoiceChunks] = useState([]);
   const [ui, setUi] = useState(UI_STRINGS);
   const [translatedSchemes, setTranslatedSchemes] = useState(HEALTH_SCHEMES);
   const [translatedCategories, setTranslatedCategories] = useState(FEEDBACK_CATEGORIES);
@@ -252,7 +262,93 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
       setFeedbackText('');
       setFeedbackCategories([]);
       setFeedbackName('');
+      setVoiceError('');
     }, 3000);
+  };
+
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = String(reader.result || '').split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  const stopVoiceRecording = async () => {
+    if (!mediaRecorder) return;
+    setIsVoiceRecording(false);
+    setIsVoiceTranscribing(true);
+    setVoiceError('');
+
+    return new Promise((resolve) => {
+      mediaRecorder.onstop = async () => {
+        try {
+          const blob = new Blob(voiceChunks, { type: 'audio/webm;codecs=opus' });
+          setVoiceChunks([]);
+
+          if (!isCloudFunctionsAvailable()) {
+            setVoiceError('Voice-to-text is unavailable until Firebase Cloud Functions are configured.');
+            resolve();
+            return;
+          }
+
+          await ensureCallableAuth();
+          const audioBase64 = await blobToBase64(blob);
+          const result = await callTranscribeAudio(audioBase64, 'WEBM_OPUS', 48000);
+          const transcript = result?.transcript || '';
+
+          if (!transcript) {
+            setVoiceError('Could not transcribe audio. Please try again or type manually.');
+            resolve();
+            return;
+          }
+
+          setFeedbackText((prev) => {
+            const trimmedPrev = (prev || '').trim();
+            return trimmedPrev ? `${trimmedPrev}\n${transcript}` : transcript;
+          });
+        } catch (err) {
+          console.error(err);
+          setVoiceError(err?.message || 'Transcription failed. Please try again or type manually.');
+        } finally {
+          setIsVoiceTranscribing(false);
+          resolve();
+        }
+      };
+      mediaRecorder.stop();
+    });
+  };
+
+  const handleVoiceFeedbackClick = async () => {
+    if (isVoiceTranscribing) return;
+
+    if (isVoiceRecording) {
+      await stopVoiceRecording();
+      return;
+    }
+
+    setVoiceError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      setVoiceChunks([]);
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) setVoiceChunks((prev) => [...prev, e.data]);
+      };
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      setMediaRecorder(rec);
+      rec.start();
+      setIsVoiceRecording(true);
+    } catch (err) {
+      console.error(err);
+      setVoiceError('Microphone access denied. Please allow mic permissions or type your feedback.');
+    }
   };
 
   return (
@@ -519,6 +615,42 @@ export default function CitizenPortal({ centers, language = 'en', onTranslatingC
                 {/* Text Feedback */}
                 <div className="login-field">
                   <label className="login-field-label">{ui.feedbackTextLabel}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', margin: '0.25rem 0 0.5rem' }}>
+                    <button
+                      type="button"
+                      className={`btn-secondary ${isVoiceRecording ? 'recording' : ''}`}
+                      onClick={handleVoiceFeedbackClick}
+                      disabled={isVoiceTranscribing}
+                      style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      {isVoiceTranscribing ? (
+                        <>
+                          <RefreshCw size={16} className="spin" style={{ animation: 'spin 1s infinite linear' }} />
+                          Transcribing...
+                        </>
+                      ) : isVoiceRecording ? (
+                        <>
+                          <MicOff size={16} />
+                          Stop Recording
+                        </>
+                      ) : (
+                        <>
+                          <Mic size={16} />
+                          Record Feedback
+                        </>
+                      )}
+                    </button>
+                    {isVoiceRecording && (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--status-critical)', fontWeight: 600 }}>
+                        Recording… tap “Stop Recording” to transcribe
+                      </span>
+                    )}
+                  </div>
+                  {voiceError && (
+                    <p style={{ color: 'var(--status-warning)', fontSize: '0.85rem', margin: '0 0 0.5rem' }}>
+                      {voiceError}
+                    </p>
+                  )}
                   <textarea
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
