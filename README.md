@@ -156,6 +156,18 @@ Built for **Build with AI: Code for Communities** (Smart Health) to demonstrate:
 
 ---
 
+## Planned future enhancements
+
+Beyond the current prototype, Chikitsalay Setu is designed to evolve into an **AI-powered district health operations command centre** — moving from reactive management to predictive, data-driven planning. Planned capabilities include:
+
+- **Emergency surge alerts** — Citizens report mass-casualty incidents (accidents, disasters, snakebites) via the Citizen Portal; the platform aggregates nearby reports and auto-escalates to the nearest PHC/CHC and district authorities once a configurable threshold is reached, with live footfall estimates, emergency kit readiness, and ambulance/staff mobilization alerts.
+- **Outbreak & disease surveillance** — PHCs/CHCs report suspected or confirmed notifiable diseases; AI clusters cases by location, disease type, and time for early outbreak detection, with district surveillance dashboards, resource mobilization recommendations, and a full audit trail.
+- **Intelligent referral & redistribution** — When a centre lacks resources (e.g. no Anti-Snake Venom for a snakebite patient), the platform recommends the best referral destination using real-time bed/doctor availability, emergency capability, medicine inventory, diagnostics, and travel ETA — and proactively suggests medicine transfers between centres before stock-outs occur (ASV, ORS, insulin, antibiotics, vaccines, obstetric medicines, diagnostic kits).
+- **PHC readiness audit & seasonal preparedness** — Dynamic readiness scores per facility (medicine stock, doctor attendance, bed occupancy, diagnostics, emergency kits, reporting compliance, citizen feedback) flag centres needing support; seasonal dashboards cover heatwave, monsoon/flood, dengue/malaria, and festival/mass-gathering preparedness.
+- **Long-term vision** — Integrate real-time ops data, citizen participation, AI forecasting, multilingual communication, and geospatial intelligence to enable predictive resource planning, faster referral coordination, and scalable deployment across districts and states.
+
+---
+
 ## Repository layout
 
 ```
