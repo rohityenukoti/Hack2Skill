@@ -36,7 +36,10 @@ const UI_STRINGS = {
   heroTitle: 'Chikitsalay Setu',
   heroTitleHindi: 'चिकित्सालय सेतु',
   heroSubtitle: 'Bridging Health Centers. Empowering Communities.\nReal-time PHC/CHC management with AI-driven supply chain intelligence.',
-  getStarted: 'Get Started',
+  heroLoginPrompt: 'Sign in to get started',
+  heroLoginAdmin: 'Administrator',
+  heroLoginHealthCenter: 'Health Center',
+  heroLoginCitizen: 'Citizen',
   exploreFeatures: 'Explore Features',
   govAnnouncements: 'Government Health Announcements',
   platformCapabilities: 'Platform Capabilities',
@@ -347,15 +350,41 @@ export default function HomePage({ onLogin, language = 'en', onLanguageChange })
             ))}
           </p>
 
-          <div className="hero-cta-row">
-            <button className="hero-cta-primary" onClick={() => document.getElementById('login')?.scrollIntoView({ behavior: 'smooth' })}>
-              {ui.getStarted}
-              <ArrowRight size={18} />
+          <p className="hero-login-prompt">{ui.heroLoginPrompt}</p>
+          <div className="hero-login-row" role="group" aria-label={ui.heroLoginPrompt}>
+            <button
+              type="button"
+              className="hero-login-btn hero-login-admin"
+              onClick={() => onLogin('admin')}
+            >
+              <Shield size={18} />
+              <span>{ui.heroLoginAdmin}</span>
             </button>
-            <button className="hero-cta-secondary" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>
-              {ui.exploreFeatures}
+            <button
+              type="button"
+              className="hero-login-btn hero-login-hc"
+              onClick={() => onLogin('healthcenter')}
+            >
+              <Hospital size={18} />
+              <span>{ui.heroLoginHealthCenter}</span>
+            </button>
+            <button
+              type="button"
+              className="hero-login-btn hero-login-citizen"
+              onClick={() => onLogin('citizen')}
+            >
+              <Heart size={18} />
+              <span>{ui.heroLoginCitizen}</span>
             </button>
           </div>
+          <button
+            type="button"
+            className="hero-explore-link"
+            onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            {ui.exploreFeatures}
+            <ArrowRight size={14} />
+          </button>
         </div>
       </section>
 
