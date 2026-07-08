@@ -6,6 +6,8 @@ AI-powered, multilingual platform for **real-time PHC/CHC operations** — inven
 
 **Live demo**: [chikitsalaysetu.web.app](https://chikitsalaysetu.web.app)
 
+**Demo video**: [Watch on YouTube](https://youtu.be/GFEAPKZ-NNc)
+
 **Product walkthrough**: step-by-step production feature guide — see [`WALKTHROUGH.md`](WALKTHROUGH.md) (also summarized [below](#product-walkthrough)).
 
 ---

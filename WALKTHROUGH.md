@@ -4,6 +4,8 @@ A complete, feature-by-feature guide to the **production** experience at [chikit
 
 Use this document to demo the platform end-to-end, or as an onboarding guide for district admins, PHC/CHC staff, and citizens.
 
+**Demo video**: [Watch on YouTube](https://youtu.be/GFEAPKZ-NNc)
+
 ---
 
 ## Table of contents
